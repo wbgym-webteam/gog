@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -7,7 +8,7 @@ from datetime import timedelta
 class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///wbgym.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = 'your-secret-key-here'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev'
 
 db = SQLAlchemy()
 migrate = Migrate()

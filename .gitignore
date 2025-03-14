@@ -2,5 +2,10 @@ __pycache__
 .venv
 .vscode
 wbgym.db
-
+/migrations
+/instances
 uv.lock
+alembic.ini
+/db
+*.db
+.env
