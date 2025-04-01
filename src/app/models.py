@@ -69,8 +69,8 @@ class DependencyType(Enum): #creates the dependency type for the games
 
 
 class ScoringPreference(Enum):  #creates the scoring preference for the games
-    BETTER_HIGHER = 'higher'
-    BETTER_LOWER = 'lower'
+    HIGHER = 'higher'  # Keep values lowercase to match existing data
+    LOWER = 'lower'   # Keep values lowercase to match existing data
 
     def get_german_text(self):
         translations = {
@@ -110,14 +110,14 @@ class Game(db.Model):   #creates the model for the games
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
     dependency_type = db.Column(db.String(10), nullable=False)  # 'time' or 'point'
-    scoring_preference = db.Column(db.String(10), nullable=False)  # 'higher' or 'lower'
+    scoring_preference = db.Column(db.Enum(ScoringPreference), nullable=False)  # Change to use Enum
     logs = db.relationship('Log', back_populates='game', lazy=True)
 
     def get_german_dependency_type(self):
         return DependencyType(self.dependency_type).get_german_text()
     
     def get_german_scoring_preference(self):
-        return ScoringPreference(self.scoring_preference).get_german_text()
+        return self.scoring_preference.get_german_text()  # Access enum value directly
 
     def __repr__(self):
         return f"{self.name} ({self.get_german_dependency_type()}, {self.get_german_scoring_preference()})"

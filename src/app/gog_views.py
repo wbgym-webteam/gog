@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, Blueprint, current_app, flash, session
 from . import db
-from .models import Game, Teams, GamePoints, Log, TeamType, User, DependencyType
+from .models import Game, Teams, GamePoints, Log, TeamType, User, DependencyType, ScoringPreference
 from sqlalchemy import func
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -21,10 +21,11 @@ def calculate_ranked_points(game_id):
             .filter(GamePoints.game_id == game_id)\
             .all()
 
-        if game.dependency_type == DependencyType.TIME_DEPENDENT:
-            game_points.sort(key=lambda x: x.points)  # Lower is better for time
+        # Sort based on game's scoring preference
+        if game.scoring_preference == ScoringPreference.LOWER:
+            game_points.sort(key=lambda x: x.points)  # Lower is better
         else:
-            game_points.sort(key=lambda x: x.points, reverse=True)  # Higher is better for points
+            game_points.sort(key=lambda x: x.points, reverse=True)  # Higher is better
 
         # Assign ranks
         for position, game_point in enumerate(game_points, start=1):

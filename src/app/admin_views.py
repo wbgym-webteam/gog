@@ -198,8 +198,8 @@ def create_game_form():
 @admin_required
 def create_game():
     name = request.form['name']
-    dependency_type = request.form.get('dependency_type')  # This will get the raw value from form
-    scoring_pref = request.form.get('scoring_preference')  # This will get the raw value from form
+    dependency_type = request.form.get('dependency_type')
+    scoring_pref = request.form.get('scoring_preference')
     
     if Game.query.filter_by(name=name).first():
         flash('Game already exists!')
@@ -210,14 +210,17 @@ def create_game():
         flash('Invalid dependency type!', 'admin')
         return redirect(url_for('admin.create_game_form'))
         
-    if not scoring_pref in ['higher', 'lower']:
+    # Convert string to enum
+    try:
+        scoring_preference = ScoringPreference(scoring_pref)
+    except ValueError:
         flash('Invalid scoring preference!', 'admin')
         return redirect(url_for('admin.create_game_form'))
     
     game = Game(
         name=name,
         dependency_type=dependency_type,
-        scoring_preference=scoring_pref
+        scoring_preference=scoring_preference  # Pass enum directly
     )
     
     try:
@@ -292,7 +295,7 @@ def admin_gog_ranking():
             .join(Teams)\
             .filter(Teams.team_type == TeamType.A)\
             .order_by(
-                GamePoints.points.asc() if game.dependency_type == DependencyType.TIME_DEPENDENT
+                GamePoints.points.asc() if game.scoring_preference == ScoringPreference.LOWER
                 else GamePoints.points.desc()
             ).all()
             
@@ -300,7 +303,7 @@ def admin_gog_ranking():
             .join(Teams)\
             .filter(Teams.team_type == TeamType.B)\
             .order_by(
-                GamePoints.points.asc() if game.dependency_type == DependencyType.TIME_DEPENDENT
+                GamePoints.points.asc() if game.scoring_preference == ScoringPreference.LOWER
                 else GamePoints.points.desc()
             ).all()
             
