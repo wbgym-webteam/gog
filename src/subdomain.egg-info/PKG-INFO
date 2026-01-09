@@ -1,3 +1,17 @@
+Metadata-Version: 2.4
+Name: subdomain
+Version: 0.1.0
+Summary: WBGYM subdomain
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: Flask
+Requires-Dist: Flask-login
+Requires-Dist: Flask-Migrate
+Requires-Dist: werkzeug
+Requires-Dist: flask-socketio
+Dynamic: license-file
+
 # Subdomain for _wbgym.de_
 
 This is the repository, where the Weinberg Secondary School develops a subdomain for their website wbgym.de.

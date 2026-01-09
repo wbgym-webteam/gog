@@ -1,4 +1,3 @@
-#gog\src\app\admin_views.py
 from flask import Blueprint, session, request, redirect, url_for, flash, render_template
 from flask_login import login_required, current_user, login_user, logout_user
 from werkzeug.security import check_password_hash
@@ -7,7 +6,6 @@ from .models import User, Teams, TeamType, Game, DependencyType, ScoringPreferen
 from datetime import datetime
 import logging
 from sqlalchemy import func
-from . import db, socketio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -89,20 +87,8 @@ def dashboard():
     admins = Admin.query.all() #lists all admin users, but currently not integrated into the templates!!! (18.2.2025)
     teams = Teams.query.all() #lists all teams
     games = Game.query.all() #lists all games
-
-    # Debug: Check all messages and their is_read values
-    all_messages = Message.query.all()
-    logger.info(f"Total messages in DB: {len(all_messages)}")
-    for msg in all_messages[-5:]:  # Show last 5 messages
-        logger.info(f"  Message {msg.id}: is_from_admin={msg.is_from_admin} (type: {type(msg.is_from_admin)}), is_read={msg.is_read} (type: {type(msg.is_read)})")
-
     # Count unread messages from users
-    unread_count = Message.query.filter(
-        Message.is_from_admin == False,
-        Message.is_read == False
-    ).count()
-    logger.info(f"Dashboard loading: unread_count = {unread_count}")
-
+    unread_count = Message.query.filter_by(is_from_admin=False, is_read=False).count()
     return render_template('gog/admin/dashboard.html', users=users, teams=teams, games=games, admins=admins, unread_count=unread_count)
 
 #creates the form for creating a new regular users account
@@ -346,22 +332,18 @@ def messages_inbox():
     """View all conversations with users"""
     conversations = Conversation.query.order_by(Conversation.updated_at.desc()).all()
 
+    # Add unread count for each conversation
     for conv in conversations:
-        conv.unread_count = Message.query.filter(
-            Message.conversation_id == conv.id,
-            Message.is_from_admin == False,  # Messages FROM users
-            Message.is_read == False         # That are NOT read
+        conv.unread_count = Message.query.filter_by(
+            conversation_id=conv.id,
+            is_from_admin=False,
+            is_read=False
         ).count()
 
-    # Recalculate global unread count exactly as in dashboard
-    unread_count = Message.query.filter(
-        Message.is_from_admin == False,
-        Message.is_read == False
-    ).count()
-    
+    unread_count = get_unread_message_count()
     return render_template('gog/admin/messages_inbox.html',
-                           conversations=conversations,
-                           unread_count=unread_count)
+                         conversations=conversations,
+                         unread_count=unread_count)
 
 
 @admin.route('/messages/<int:conversation_id>', methods=['GET', 'POST'])
@@ -384,18 +366,19 @@ def messages_conversation(conversation_id):
             db.session.add(message)
             conversation.updated_at = datetime.utcnow()
             db.session.commit()
-            try:
-                socketio.emit('notification', {
-                    'type': 'new_message',
-                    'conversation_id': conversation.id,
-                    'from': current_user.username
-                }, room=f'user_{conversation.user_id}')
-            except Exception as e:
-                logger.error(f"Socket emit failed: {e}")
             flash('Antwort gesendet!')
         return redirect(url_for('admin.messages_conversation', conversation_id=conversation_id))
 
-    # Don't automatically mark messages as read - let admin do it manually
+    # Mark user messages as read when admin views them
+    unread_user_messages = Message.query.filter_by(
+        conversation_id=conversation.id,
+        is_from_admin=False,
+        is_read=False
+    ).all()
+    for msg in unread_user_messages:
+        msg.is_read = True
+    db.session.commit()
+
     unread_count = get_unread_message_count()
     return render_template('gog/admin/messages_conversation.html',
                          conversation=conversation,
@@ -439,15 +422,6 @@ def messages_new():
             db.session.add(message)
             conversation.updated_at = datetime.utcnow()
             db.session.commit()
-            try:
-                socketio.emit('notification', {
-                    'type': 'new_message',
-                    'conversation_id': conversation.id,
-                    'from': current_user.username
-                }, room=f'user_{conversation.user_id}')
-            except Exception as e:
-                logger.error(f"Socket emit failed: {e}")
-                
             flash('Nachricht gesendet!')
 
         return redirect(url_for('admin.messages_conversation', conversation_id=conversation.id))
@@ -466,21 +440,3 @@ def messages_new():
                          users_without_conv=users_without_conv,
                          users_with_conv=users_with_conv,
                          unread_count=unread_count)
-
-
-@admin.route('/messages/<int:conversation_id>/mark-read', methods=['POST'])
-@login_required
-@admin_required
-def mark_conversation_read(conversation_id):
-    """Mark all user messages as read in a specific conversation"""
-    unread_messages = Message.query.filter_by(
-        conversation_id=conversation_id,
-        is_from_admin=False,
-        is_read=False
-    ).all()
-
-    for msg in unread_messages:
-        msg.is_read = True
-    db.session.commit()
-
-    return '', 204

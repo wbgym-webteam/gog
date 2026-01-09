@@ -1,9 +1,11 @@
+<!--gog\src\app\templates\gog\gog_dashboard.html-->
 <!DOCTYPE html>
 <html>
 <head>
     <title>Game of Grapes - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='gog/gog_dashboard.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     <div class="container dashboard-container">
@@ -12,15 +14,50 @@
             <h2>Willkommen, {{ current_user.username }}!</h2>
             <a href="{{ url_for('gog.logout') }}" class="action-button" style="background: #ff4444;">Logout</a>
         </div>
-        
+
         <div class="navigation-buttons" style="display: flex; gap: 15px; margin-bottom: 30px;">
             <a href="{{ url_for('gog.teamManagement') }}" class="action-button">Punkte Verteilung</a>
             <a href="{{ url_for('gog.setup') }}" class="action-button">Setup</a>
+            <a href="{{ url_for('gog.messages') }}" id="messages-link" class="action-button" style="position: relative;">
+                Admin kontaktieren
+                <span id="unread-badge" style="position: absolute; top: -8px; right: -8px; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; display: {{ 'inline' if unread_count > 0 else 'none' }};">{{ unread_count if unread_count > 0 else '' }}</span>
+            </a>
         </div>
 
         <div class="dashboard-content">
             <!-- Dashboard content will go here -->
         </div>
     </div>
+
+    <script>
+        const socket = io();
+        const unreadBadge = document.getElementById('unread-badge');
+        
+        // Initialize count from server-side render
+        let currentUnreadCount = parseInt("{{ unread_count }}") || 0;
+
+        socket.on('connect', () => {
+            console.log('Connected to notification system');
+        });
+
+        // The "Webhook" Listener
+        socket.on('notification', function(data) {
+            if (data.type === 'new_message') {
+                // 1. Increment count
+                currentUnreadCount++;
+                
+                // 2. Update text
+                unreadBadge.textContent = currentUnreadCount;
+                
+                // 3. Make visible if it was hidden
+                unreadBadge.style.display = 'flex';
+                
+                // 4. Optional: Reset animation to make it "pop" again
+                unreadBadge.style.animation = 'none';
+                unreadBadge.offsetHeight; /* trigger reflow */
+                unreadBadge.style.animation = 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            }
+        });
+    </script>
 </body>
 </html>

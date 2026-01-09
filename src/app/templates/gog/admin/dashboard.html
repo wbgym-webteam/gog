@@ -1,9 +1,11 @@
+<!--gog\src\app\templates\gog\admin\dashboard.html-->
 <!DOCTYPE html>
 <html>
 <head>
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_dashboard.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 </head>
 <body>
     <div class="container dashboard-container">
@@ -14,6 +16,10 @@
             <a href="{{ url_for('admin.create_game') }}" class="action-button">Neues Spiel erstellen</a>
             <a href="{{ url_for('admin.game_logs') }}" class="action-button">Spiel Protokoll</a>
             <a href="{{ url_for('admin.admin_gog_ranking') }}" class="action-button">Rangliste</a>
+            <a href="{{ url_for('admin.messages_inbox') }}" class="action-button" style="position: relative;">
+                Nachrichten
+                <span id="unread-badge" style="position: absolute; top: -8px; right: -8px; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; display: {{ 'inline' if unread_count > 0 else 'none' }};">{{ unread_count if unread_count > 0 else '' }}</span>
+            </a>
             <a href="{{ url_for('admin.logout') }}" class="action-button" style="background: #ff4444;">Logout</a>
         </div>
 
@@ -23,7 +29,7 @@
             {% for user in users %}
                 <li style="display: flex; justify-content: space-between; align-items: center;">
                     <span>{{ user.username }}</span>
-                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display: inline;" 
+                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display: inline;"
                           onsubmit="return confirm('Sicher das sie {{ user.username }} löschen möchten?');">
                         <button type="submit" class="action-button delete-button">L&ouml;schen</button>
                     </form>
@@ -38,7 +44,7 @@
             {% for team in teams %}
                 <li style="display: flex; justify-content: space-between; align-items: center;">
                     <span>{{ team.team_name }} ({{ team.id }})</span>
-                    <form method="POST" action="{{ url_for('admin.delete_team', team_id=team.id) }}" style="display: inline;" 
+                    <form method="POST" action="{{ url_for('admin.delete_team', team_id=team.id) }}" style="display: inline;"
                           onsubmit="return confirm('Sicher das sie Team {{ team.team_name }} löschen möchten?');">
                         <button type="submit" class="action-button delete-button">L&ouml;schen</button>
                     </form>
@@ -53,7 +59,7 @@
             {% for game in games %}
                 <li style="display: flex; justify-content: space-between; align-items: center;">
                     <span>{{ game.name }} ({{ game.get_german_dependency_type() }}, {{ game.get_german_scoring_preference() }})</span>
-                    <form method="POST" action="{{ url_for('admin.delete_game', game_id=game.id) }}" style="display: inline;" 
+                    <form method="POST" action="{{ url_for('admin.delete_game', game_id=game.id) }}" style="display: inline;"
                           onsubmit="return confirm('Sicher das sie Spiel {{ game.name }} löschen möchten?');">
                         <button type="submit" class="action-button delete-button">L&ouml;schen</button>
                     </form>
@@ -62,5 +68,47 @@
             </ul>
         </div>
     </div>
+
+    <script>
+        const socket = io();
+        const unreadBadge = document.getElementById('unread-badge');
+        let currentUnreadCount = parseInt("{{ unread_count }}") || 0;
+
+        socket.on('connect', () => {
+            console.log('Admin notification system connected');
+            console.log('Initial unread count from server:', currentUnreadCount);
+        });
+
+        socket.on('notification', function(data) {
+            if (data.type === 'new_message') {
+                // 1. Increment
+                currentUnreadCount++;
+                
+                // 2. Update visual
+                unreadBadge.textContent = currentUnreadCount;
+                unreadBadge.style.display = 'flex';
+                
+                // 3. Animation Pop
+                unreadBadge.style.animation = 'none';
+                unreadBadge.offsetHeight; 
+                unreadBadge.style.animation = 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            }
+            else if (data.type === 'messages_read') {
+                // Handle messages being marked as read
+                const readCount = data.count;
+                
+                // Decrease count
+                currentUnreadCount -= readCount;
+                if (currentUnreadCount < 0) currentUnreadCount = 0;
+                
+                // Update visual
+                if (currentUnreadCount === 0) {
+                    unreadBadge.style.display = 'none';
+                } else {
+                    unreadBadge.textContent = currentUnreadCount;
+                }
+            }
+        });
+    </script>
 </body>
 </html>

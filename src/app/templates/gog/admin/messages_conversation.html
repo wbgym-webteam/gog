@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Unterhaltung mit {{ conversation.user.username }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_dashboard.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        .messages-container {
+            background: #363636;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message-admin {
+            background: #9370DB;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message-user {
+            background: #2d2d2d;
+            color: #fff;
+            margin-right: auto;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .message-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #404040;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            background: #2d2d2d;
+            color: #fff;
+        }
+
+        .message-input:focus {
+            border-color: #9370DB;
+        }
+
+        .send-button {
+            background: #9370DB;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .send-button:hover {
+            background: #8A2BE2;
+        }
+
+        .send-button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .no-messages {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+
+        .flash-message {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .conversation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            color: #B19CD9;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .status-connected {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #ff4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Unterhaltung</h1>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin.messages_inbox') }}" class="action-button">Zurück zur Übersicht</a>
+            <button onclick="markAsRead()" id="mark-read-btn" class="action-button" style="background: #4CAF50;">Als gelesen markieren</button>
+            <a href="{{ url_for('admin.dashboard') }}" class="action-button">Dashboard</a>
+        </div>
+
+        <div class="dashboard-section">
+            <div class="conversation-header">
+                <h2>{{ conversation.user.username }}</h2>
+                <div>
+                    <span id="connection-status" class="connection-status status-disconnected">Verbinde...</span>
+                    <span class="user-info">Gestartet: {{ conversation.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messages">
+                {% if conversation.messages %}
+                    {% for msg in conversation.messages %}
+                        <div class="message {{ 'message-admin' if msg.is_from_admin else 'message-user' }}">
+                            <div class="message-sender">
+                                {% if msg.is_from_admin %}
+                                    {{ msg.sender.username }} (Admin)
+                                {% else %}
+                                    {{ conversation.user.username }}
+                                {% endif %}
+                            </div>
+                            <div class="message-content">{{ msg.content }}</div>
+                            <div class="message-time">{{ msg.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-messages" id="no-messages">
+                        Noch keine Nachrichten in dieser Unterhaltung.
+                    </div>
+                {% endif %}
+            </div>
+
+            <form id="message-form" class="message-form">
+                <input type="text" id="message-input" class="message-input" placeholder="Antwort eingeben..." required autofocus>
+                <button type="submit" id="send-button" class="send-button">Senden</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const conversationId = {{ conversation.id }};
+        const userName = "{{ conversation.user.username }}";
+        const messagesContainer = document.getElementById('messages');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const connectionStatus = document.getElementById('connection-status');
+        const noMessages = document.getElementById('no-messages');
+
+        // Connect to Socket.IO
+        const socket = io();
+
+        socket.on('connect', function() {
+            connectionStatus.textContent = 'Verbunden';
+            connectionStatus.className = 'connection-status status-connected';
+            sendButton.disabled = false;
+
+            // Join the conversation room
+            socket.emit('join_conversation', { conversation_id: conversationId });
+
+            // Mark messages as read
+            socket.emit('mark_read', { conversation_id: conversationId });
+        });
+
+        socket.on('disconnect', function() {
+            connectionStatus.textContent = 'Verbindung unterbrochen';
+            connectionStatus.className = 'connection-status status-disconnected';
+            sendButton.disabled = true;
+        });
+
+        // Handle new messages
+        socket.on('new_message', function(data) {
+            // Only handle messages for this conversation
+            if (data.conversation_id !== conversationId) return;
+
+            // Remove "no messages" placeholder if present
+            if (noMessages) {
+                noMessages.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (data.is_from_admin ? 'message-admin' : 'message-user');
+
+            const senderDiv = document.createElement('div');
+            senderDiv.className = 'message-sender';
+            senderDiv.textContent = data.is_from_admin ? data.sender_name + ' (Admin)' : userName;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = data.content;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = data.created_at;
+
+            messageDiv.appendChild(senderDiv);
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Mark as read if it's from user
+            if (!data.is_from_admin) {
+                socket.emit('mark_read', { conversation_id: conversationId });
+            }
+        });
+
+        // Handle form submission
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const content = messageInput.value.trim();
+            if (!content) return;
+
+            // Send message via socket
+            socket.emit('send_message', {
+                conversation_id: conversationId,
+                content: content
+            });
+
+            // Clear input
+            messageInput.value = '';
+            messageInput.focus();
+        });
+
+        // Manual mark as read function
+        function markAsRead() {
+            fetch('/gog/admin/messages/' + conversationId + '/mark-read', { 
+                method: 'POST' 
+            }).then(response => {
+                if (response.ok) {
+                    // Update button text temporarily
+                    const btn = document.getElementById('mark-read-btn');
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Als gelesen markiert!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                }
+            });
+        }
+
+        // Auto-scroll to bottom on load
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    </script>
+</body>
+</html>

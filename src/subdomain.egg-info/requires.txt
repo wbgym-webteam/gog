@@ -1,0 +1,5 @@
+Flask
+Flask-login
+Flask-Migrate
+werkzeug
+flask-socketio

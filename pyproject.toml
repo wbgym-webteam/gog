@@ -4,4 +4,4 @@ version = "0.1.0"
 description = "WBGYM subdomain"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["Flask", "Flask-login", "Flask-Migrate", "werkzeug"]
+dependencies = ["Flask", "Flask-login", "Flask-Migrate", "werkzeug", "flask-socketio"]
