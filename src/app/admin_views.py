@@ -281,6 +281,92 @@ def game_logs():
     logs = Log.query.order_by(Log.timestamp.desc()).all()
     return render_template('gog/admin/game_logs.html', logs=logs)
 
+#page for editing a game log
+@admin.route('/logs/edit/<int:log_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_log(log_id):
+    log = Log.query.get_or_404(log_id)
+
+    if request.method == 'POST':
+        team_id = request.form.get('team_id')
+        game_id = request.form.get('game_id')
+        points = request.form.get('points')
+
+        try:
+            points = int(points)
+            game_id = int(game_id)
+
+            # Update the log entry
+            log.team_id = team_id
+            log.game_id = game_id
+            log.points = points
+
+            # Update or create the corresponding GamePoints entry
+            game_point = GamePoints.query.filter_by(
+                team_id=team_id,
+                game_id=game_id
+            ).first()
+
+            if game_point:
+                game_point.points = points
+            else:
+                game_point = GamePoints(team_id=team_id, game_id=game_id, points=points)
+                db.session.add(game_point)
+
+            db.session.commit()
+
+            # Recalculate rankings for the affected game
+            from .gog_views import calculate_ranked_points
+            calculate_ranked_points(game_id)
+
+            flash('Log erfolgreich aktualisiert!')
+            return redirect(url_for('admin.game_logs'))
+
+        except ValueError:
+            flash('Ungültiges Punkteformat!')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Fehler beim Aktualisieren des Logs: {str(e)}')
+
+    teams = Teams.query.all()
+    games = Game.query.all()
+    return render_template('gog/admin/edit_log.html', log=log, teams=teams, games=games)
+
+#function for deleting a game log
+@admin.route('/logs/delete/<int:log_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_log(log_id):
+    log = Log.query.get_or_404(log_id)
+    game_id = log.game_id
+    team_id = log.team_id
+
+    try:
+        db.session.delete(log)
+
+        # Check if there are other logs for this team/game combination
+        remaining_logs = Log.query.filter_by(team_id=team_id, game_id=game_id).count()
+
+        # If no more logs exist, delete the GamePoints entry as well
+        if remaining_logs == 0:
+            game_point = GamePoints.query.filter_by(team_id=team_id, game_id=game_id).first()
+            if game_point:
+                db.session.delete(game_point)
+
+        db.session.commit()
+
+        # Recalculate rankings for the affected game
+        from .gog_views import calculate_ranked_points
+        calculate_ranked_points(game_id)
+
+        flash('Log erfolgreich gelöscht!')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Fehler beim Löschen des Logs: {str(e)}')
+
+    return redirect(url_for('admin.game_logs'))
+
 #page for accessing the tournaments ranking
 @admin.route('/ranking')
 @login_required
