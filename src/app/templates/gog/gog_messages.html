@@ -118,14 +118,25 @@
             background: #ff4444;
             color: white;
         }
+
+        .dashboard-container {
+            position: relative;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container dashboard-container">
+        <a href="{{ url_for('gog.dashboard') }}" class="action-button back-button">Zurück</a>
         <h1>Game of Grapes</h1>
         <div class="top-bar">
             <h2>Nachrichten an Admin</h2>
-            <a href="{{ url_for('gog.dashboard') }}" class="action-button">Zurück</a>
         </div>
 
         <span id="connection-status" class="connection-status status-disconnected">Verbinde...</span>
