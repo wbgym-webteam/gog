@@ -70,7 +70,7 @@ And run the `main.py`-file!
 •	Add the following configuration to the file and if necessary adapt some of the Statements:
 
 [Unit]
-Description=Gunicorn instance to serve Flask app
+Description=Game of Grapes Flask App with SocketIO
 After=network.target
 
 [Service]
@@ -78,8 +78,9 @@ User=webteam
 Group=www-data
 WorkingDirectory=/gog/gog/src
 Environment="PATH=/gog/gog/src/.venv/bin"
-ExecStart=/gog/gog/src/.venv/bin/python -m gunicorn -w 4 -b 0.0.0.0:8000 main:app
+ExecStart=/gog/gog/src/.venv/bin/python -m gunicorn -w 4 -k eventlet -b 0.0.0.0:8000 main:application
 Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
