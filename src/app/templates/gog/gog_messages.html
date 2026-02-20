@@ -188,9 +188,6 @@
 
             // Join the conversation room
             socket.emit('join_conversation', { conversation_id: conversationId });
-
-            // Only mark admin messages as read on initial load if there are any
-            // Don't do this automatically - let user decide when they've actually read messages
         });
 
         socket.on('disconnect', function() {
@@ -228,8 +225,11 @@
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-            // Only mark admin messages as read when user actually sees them
-            // Don't automatically mark everything as read
+            // If this is an admin message and the page is visible, mark it as read immediately
+            // since the user is actively viewing the conversation
+            if (data.is_from_admin && document.visibilityState === 'visible') {
+                fetch('/gog/messages/mark-read', { method: 'POST', keepalive: true });
+            }
         });
 
         // Handle form submission
@@ -250,13 +250,8 @@
             messageInput.focus();
         });
 
-        // Mark admin messages as read when user explicitly views the page for a while
-        // Only mark as read after user has been actively viewing for 10 seconds
-        setTimeout(function() {
-            if (document.visibilityState === 'visible') {
-                fetch('/gog/messages/mark-read', { method: 'POST', keepalive: true });
-            }
-        }, 10000);
+        // Mark admin messages as read on page load immediately (user is already here)
+        fetch('/gog/messages/mark-read', { method: 'POST', keepalive: true });
 
         // Auto-scroll to bottom on load
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
