@@ -147,7 +147,7 @@
                     <div class="message {{ 'message-admin' if msg.is_from_admin else 'message-user' }}">
                         <div class="message-sender">
                             {% if msg.is_from_admin %}
-                                Admin ({{ msg.sender.username }})
+                                Admin ({{ msg.effective_sender_name }})
                             {% else %}
                                 Du
                             {% endif %}

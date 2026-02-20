@@ -1,22 +1,29 @@
-#gog\build\lib\app\sockets.py
+#gog\src\app\sockets.py
 from flask import session
 from flask_socketio import emit, join_room, leave_room
 from flask_login import current_user
 from . import socketio, db
-from .models import Message, Conversation, User
+from .models import Admin, Message, Conversation, User
 from datetime import datetime
+
+
+def _is_admin_user():
+    """Return True if the currently logged-in user is an Admin instance."""
+    return isinstance(current_user, Admin) or bool(session.get('is_admin'))
 
 
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
     if current_user.is_authenticated:
-        # Join user's personal room for notifications
         join_room(f'user_{current_user.id}')
 
-        # If admin, join admin room to receive all messages
-        if current_user.is_admin:
+        is_admin = _is_admin_user()
+        print(f"User connected: {current_user.id}. Is Admin: {is_admin}")
+
+        if is_admin:
             join_room('admins')
+            print(f"User {current_user.id} joined 'admins' room")
 
 
 @socketio.on('disconnect')
@@ -24,7 +31,7 @@ def handle_disconnect():
     """Handle client disconnection"""
     if current_user.is_authenticated:
         leave_room(f'user_{current_user.id}')
-        if current_user.is_admin:
+        if _is_admin_user():
             leave_room('admins')
 
 
@@ -60,54 +67,55 @@ def handle_send_message(data):
     if not conversation:
         return
 
-    # Security check: user can only send to their own conversation
-    # Admin can send to any conversation
-    if not current_user.is_admin and conversation.user_id != current_user.id:
+    is_admin = _is_admin_user()
+
+    # Permission check: admins can message any conversation; users only their own
+    if not is_admin and conversation.user_id != current_user.id:
         return
 
-    # Create and save the message
+    is_from_admin = is_admin
+
+    print(f"User {current_user.id} sending message: is_admin={is_admin}, is_from_admin={is_from_admin}")
+
     message = Message(
         conversation_id=conversation.id,
-        sender_id=current_user.id,
+        # Set the correct sender FK depending on who is sending
+        admin_sender_id=current_user.id if is_from_admin else None,
+        sender_id=None if is_from_admin else current_user.id,
         content=content,
-        is_from_admin=current_user.is_admin,
+        is_from_admin=is_from_admin,
         is_read=False
     )
     db.session.add(message)
     conversation.updated_at = datetime.utcnow()
     db.session.commit()
 
-    # Prepare message data for broadcast
-    message_data = {
+    emit('new_message', {
         'id': message.id,
         'content': message.content,
-        'sender_id': message.sender_id,
         'sender_name': current_user.username,
         'is_from_admin': message.is_from_admin,
         'created_at': message.created_at.strftime('%d.%m.%Y %H:%M'),
         'conversation_id': conversation.id
-    }
+    }, room=f'conversation_{conversation_id}')
 
-    # Emit to conversation room (everyone viewing this conversation)
-    emit('new_message', message_data, room=f'conversation_{conversation_id}')
-
-    # Notify the recipient
-    if current_user.is_admin:
-        # Notify the user
+    if is_from_admin:
         emit('notification', {
             'type': 'new_message',
+            'count': 1,
             'conversation_id': conversation.id,
-            'from': current_user.username
+            'content': message.content,
+            'from': current_user.username,
+            'timestamp': datetime.utcnow().strftime('%d.%m.%Y %H:%M')
         }, room=f'user_{conversation.user_id}')
     else:
-        # Notify all admins
         emit('notification', {
             'type': 'new_message',
             'conversation_id': conversation.id,
+            'content': message.content,
             'from': current_user.username,
-            'user_id': current_user.id
+            'timestamp': datetime.utcnow().strftime('%d.%m.%Y %H:%M')
         }, room='admins')
-
 
 @socketio.on('mark_read')
 def handle_mark_read(data):
@@ -123,16 +131,15 @@ def handle_mark_read(data):
     if not conversation:
         return
 
-    # Mark appropriate messages as read
-    if current_user.is_admin:
-        # Admin reads user messages
+    is_admin = _is_admin_user()
+    if is_admin:
         messages = Message.query.filter_by(
             conversation_id=conversation_id,
             is_from_admin=False,
             is_read=False
         ).all()
+        print(f"Admin marking {len(messages)} messages as read in conversation {conversation_id}")
     else:
-        # User reads admin messages
         if conversation.user_id != current_user.id:
             return
         messages = Message.query.filter_by(

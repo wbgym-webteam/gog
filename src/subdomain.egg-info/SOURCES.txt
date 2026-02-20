@@ -13,6 +13,7 @@ src/app/sockets.py
 src/app/views.py
 src/app/migrations/versions/add_user_id_to_logs.py
 src/migrations/env.py
+src/migrations/versions/a2330b9bedb1_separate_admins_table_remove_is_admin_.py
 src/migrations/versions/eeb11406ea32_add_type_column_to_users_table.py
 src/subdomain.egg-info/PKG-INFO
 src/subdomain.egg-info/SOURCES.txt

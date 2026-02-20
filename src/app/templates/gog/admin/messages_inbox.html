@@ -227,12 +227,28 @@
                     console.log("Moved conversation to top of list");
                 }
                 else {
-                    // Conversation not in list - don't reload, just log
-                    console.warn("Conversation", convId, "not found in list. Elements:", {
-                        convRow: !!convRow,
-                        badge: !!badge
-                    });
-                    console.log("Page will NOT reload - badges will update on next manual page load");
+                    // Brand-new conversation — build and insert the row dynamically
+                    if (noMsg) noMsg.style.display = 'none';
+
+                    const newRow = document.createElement('a');
+                    newRow.href = '/gog/admin/messages/' + convId;
+                    newRow.className = 'conversation-item';
+                    newRow.id = 'conv-' + convId;
+
+                    let preview = data.content || '';
+                    if (preview.length > 60) preview = preview.substring(0, 60) + '...';
+
+                    newRow.innerHTML = `
+                        <div class="conversation-info">
+                            <div class="conversation-username">${data.from}</div>
+                            <div class="conversation-preview" id="preview-${convId}">${preview}</div>
+                            <div class="conversation-time" id="time-${convId}">${data.timestamp || ''}</div>
+                        </div>
+                        <span class="unread-badge pop-animation" id="badge-${convId}" data-count="1" style="display:flex;">1</span>
+                    `;
+
+                    list.prepend(newRow);
+                    console.log("New conversation row inserted for conversation", convId);
                 }
             }
         });

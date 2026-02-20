@@ -1,9 +1,8 @@
 #gog\src\app\admin_views.py
 from flask import Blueprint, session, request, redirect, url_for, flash, render_template
 from flask_login import login_required, current_user, login_user, logout_user
-from werkzeug.security import check_password_hash
 from functools import wraps
-from .models import User, Teams, TeamType, Game, DependencyType, ScoringPreference, Admin, GamePoints, Log, db, Conversation, Message
+from .models import User, Admin, Teams, TeamType, Game, DependencyType, ScoringPreference, GamePoints, Log, db, Conversation, Message
 from datetime import datetime
 import logging
 from sqlalchemy import func
@@ -13,13 +12,13 @@ from . import db, socketio
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-admin = Blueprint('admin', __name__, 
-                 url_prefix='/gog/admin', 
-                 template_folder='templates/gog',  # Updated template folder path
-                 static_folder='static/gog/admin',
-                 static_url_path='/static/admin')
+admin = Blueprint('admin', __name__,
+                  url_prefix='/gog/admin',
+                  template_folder='templates/gog',
+                  static_folder='static/gog/admin',
+                  static_url_path='/static/admin')
 
-def admin_required(f):  
+def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('is_admin'):
@@ -30,45 +29,42 @@ def admin_required(f):
 
 @admin.before_request
 def check_admin():
-    # Skip authentication for static files and login route
     if not request.endpoint:
         return
-    
+
     if 'static' in request.endpoint or request.endpoint == 'admin.login':
         return
 
-    # Check if user is authenticated and is admin
     if not current_user.is_authenticated or not session.get('is_admin'):
-        session.clear()  # Clear any existing session
+        session.clear()
         return redirect(url_for('admin.login'))
 
-#defines the login page for the admin, which is the "default page" if not authenticated
+#defines the login page for the admin
 @admin.route('/login', methods=['GET', 'POST'])
 def login():
-    # Clear any existing session
     if 'is_admin' in session and not current_user.is_authenticated:
         session.clear()
-    
-    # If user is already authenticated and is admin, redirect to dashboard
+
     if current_user.is_authenticated and session.get('is_admin'):
         return redirect(url_for('admin.dashboard'))
-    
-    if request.method == 'POST': #detirmines what has to go in the login page
+
+    if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()  # Check if user exists
-        
-        if user and user.check_password(password) and user.is_admin:    #if user is admin, do this
-            login_user(user)
+
+        # Query the dedicated admins table
+        admin_user = Admin.query.filter_by(username=username).first()
+
+        if admin_user and admin_user.check_password(password):
+            login_user(admin_user)
             session['is_admin'] = True
-            session['user_id'] = user.id
+            session['user_id'] = admin_user.id
             session.permanent = True
             return redirect(url_for('admin.dashboard'))
-        
+
         flash('Falscher Benutzername/Passwort')
         return render_template('gog/admin/login.html')
-    
+
     return render_template('gog/admin/login.html')
 
 @admin.route('/logout')
@@ -82,21 +78,19 @@ def logout():
 @login_required
 @admin_required
 def dashboard():
-    if not current_user.is_authenticated or not session.get('is_admin'):    #if not authenticated, redirect to login
+    if not current_user.is_authenticated or not session.get('is_admin'):
         return redirect(url_for('admin.login'))
 
-    users = User.query.filter_by(is_admin=False).all() #lists all regular users
-    admins = Admin.query.all() #lists all admin users, but currently not integrated into the templates!!! (18.2.2025)
-    teams = Teams.query.all() #lists all teams
-    games = Game.query.all() #lists all games
+    users = User.query.all()            # all regular users
+    admins = Admin.query.all()          # all admins from the admins table
+    teams = Teams.query.all()
+    games = Game.query.all()
 
-    # Debug: Check all messages and their is_read values
     all_messages = Message.query.all()
     logger.info(f"Total messages in DB: {len(all_messages)}")
-    for msg in all_messages[-5:]:  # Show last 5 messages
+    for msg in all_messages[-5:]:
         logger.info(f"  Message {msg.id}: is_from_admin={msg.is_from_admin} (type: {type(msg.is_from_admin)}), is_read={msg.is_read} (type: {type(msg.is_read)})")
 
-    # Count unread messages from users
     unread_count = Message.query.filter(
         Message.is_from_admin == False,
         Message.is_read == False
@@ -105,7 +99,7 @@ def dashboard():
 
     return render_template('gog/admin/dashboard.html', users=users, teams=teams, games=games, admins=admins, unread_count=unread_count)
 
-#creates the form for creating a new regular users account
+#creates the form for creating a new regular user account
 @admin.route('/users/create', methods=['GET'])
 @admin_required
 def create_user_form():
@@ -116,27 +110,32 @@ def create_user_form():
 def create_user():
     username = request.form['username']
     password = request.form['password']
-    
+
     if User.query.filter_by(username=username).first():
         flash('Username already exists!')
         return redirect(url_for('admin.dashboard'))
-    
-    user = User(username=username, is_admin=False)  # Explicitly set is_admin to False
+
+    # Also prevent collision with admin usernames
+    if Admin.query.filter_by(username=username).first():
+        flash('Username already exists!')
+        return redirect(url_for('admin.dashboard'))
+
+    user = User(username=username)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
-    
+
     flash('User created successfully!')
     return redirect(url_for('admin.dashboard'))
 
-#setup for deleting a regular users account
+#setup for deleting a regular user account
 @admin.route('/users/delete/<int:user_id>', methods=['POST'])
 @admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     db.session.delete(user)
     db.session.commit()
-    
+
     flash('User deleted successfully!')
     return redirect(url_for('admin.dashboard'))
 
@@ -149,26 +148,25 @@ def create_team_form():
 @admin.route('/teams/create', methods=['POST'])
 @admin_required
 def create_team():
-    # this the team consists of
     name = request.form['name']
     type_id = request.form['type']
     number = request.form['number']
-    
+
     team_id = f"{type_id.lower()}{number}"
-    
-    if Teams.query.filter_by(id=team_id).first(): #checks if team already exists
+
+    if Teams.query.filter_by(id=team_id).first():
         flash('Team already exists!')
         return redirect(url_for('admin.dashboard'))
-    
+
     if not name:
         name = team_id
-    
+
     team = Teams(team_type=type_id, team_number=number)
     team.id = team_id
     team.team_name = name
     db.session.add(team)
     db.session.commit()
-    
+
     flash('Team created successfully!')
     return redirect(url_for('admin.dashboard'))
 
@@ -177,37 +175,32 @@ def create_team():
 @admin_required
 def delete_team(team_id):
     try:
-        # Get the team
         team = Teams.query.get_or_404(team_id)
         logger.info(f"Found team to delete: {team.id}")
-        
-        # First delete all related game points
+
         points_deleted = GamePoints.query.filter_by(team_id=team_id).delete()
         logger.info(f"Deleted {points_deleted} game points records")
-        
-        # Delete all related logs
+
         logs_deleted = Log.query.filter_by(team_id=team_id).delete()
         logger.info(f"Deleted {logs_deleted} log records")
-        
-        # Now delete the team
+
         db.session.delete(team)
         db.session.commit()
-        
+
         logger.info(f"Successfully deleted team {team_id}")
         flash('Team deleted successfully!')
-        
+
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error deleting team {team_id}: {str(e)}")
         flash(f'Error deleting team: {str(e)}')
-        
+
     return redirect(url_for('admin.dashboard'))
 
 #page for creating a new game
 @admin.route('/games/create', methods=['GET'])
 @admin_required
 def create_game_form():
-    # Clear any existing flash messages when loading the form
     session.pop('_flashes', None)
     return render_template('gog/admin/create_game.html')
 
@@ -217,29 +210,27 @@ def create_game():
     name = request.form['name']
     dependency_type = request.form.get('dependency_type')
     scoring_pref = request.form.get('scoring_preference')
-    
+
     if Game.query.filter_by(name=name).first():
         flash('Game already exists!')
         return redirect(url_for('admin.dashboard'))
-    
-    # Validate the values
+
     if not dependency_type in ['point', 'time']:
         flash('Invalid dependency type!', 'admin')
         return redirect(url_for('admin.create_game_form'))
-        
-    # Convert string to enum
+
     try:
         scoring_preference = ScoringPreference(scoring_pref)
     except ValueError:
         flash('Invalid scoring preference!', 'admin')
         return redirect(url_for('admin.create_game_form'))
-    
+
     game = Game(
         name=name,
         dependency_type=dependency_type,
-        scoring_preference=scoring_preference  # Pass enum directly
+        scoring_preference=scoring_preference
     )
-    
+
     try:
         db.session.add(game)
         db.session.commit()
@@ -248,7 +239,7 @@ def create_game():
         db.session.rollback()
         flash(f'Error creating game: {str(e)}', 'admin')
         return redirect(url_for('admin.create_game_form'))
-    
+
     return redirect(url_for('admin.dashboard'))
 
 #function for deleting a game
@@ -258,19 +249,15 @@ def delete_game(game_id):
     game = Game.query.get_or_404(game_id)
     db.session.delete(game)
     db.session.commit()
-    
+
     flash('Game deleted successfully!')
     return redirect(url_for('admin.dashboard'))
 
 #default page for admins
-#if authenticated, redirects to dashboard
-#if not authenticated, redirects to login
 @admin.route('/')
 def admin_home():
-    # If user is already authenticated and is admin, redirect to dashboard
     if current_user.is_authenticated and current_user.is_administrator:
         return redirect(url_for('admin.dashboard'))
-    # If user is not authenticated or is not admin, redirect to login
     return redirect(url_for('admin.login'))
 
 #page for accessing game logs
@@ -297,12 +284,10 @@ def edit_log(log_id):
             points = int(points)
             game_id = int(game_id)
 
-            # Update the log entry
             log.team_id = team_id
             log.game_id = game_id
             log.points = points
 
-            # Update or create the corresponding GamePoints entry
             game_point = GamePoints.query.filter_by(
                 team_id=team_id,
                 game_id=game_id
@@ -316,7 +301,6 @@ def edit_log(log_id):
 
             db.session.commit()
 
-            # Recalculate rankings for the affected game
             from .gog_views import calculate_ranked_points
             calculate_ranked_points(game_id)
 
@@ -345,10 +329,8 @@ def delete_log(log_id):
     try:
         db.session.delete(log)
 
-        # Check if there are other logs for this team/game combination
         remaining_logs = Log.query.filter_by(team_id=team_id, game_id=game_id).count()
 
-        # If no more logs exist, delete the GamePoints entry as well
         if remaining_logs == 0:
             game_point = GamePoints.query.filter_by(team_id=team_id, game_id=game_id).first()
             if game_point:
@@ -356,7 +338,6 @@ def delete_log(log_id):
 
         db.session.commit()
 
-        # Recalculate rankings for the affected game
         from .gog_views import calculate_ranked_points
         calculate_ranked_points(game_id)
 
@@ -367,7 +348,7 @@ def delete_log(log_id):
 
     return redirect(url_for('admin.game_logs'))
 
-#page for accessing the tournaments ranking
+#page for accessing the tournament ranking
 @admin.route('/ranking')
 @login_required
 @admin_required
@@ -392,7 +373,7 @@ def admin_gog_ranking():
 
     games = Game.query.all()
     game_leaderboards = {'A_Teams': [], 'B_Teams': []}
-    
+
     for game in games:
         a_ranking = GamePoints.query.filter_by(game_id=game.id)\
             .join(Teams)\
@@ -401,7 +382,7 @@ def admin_gog_ranking():
                 GamePoints.points.asc() if game.scoring_preference == ScoringPreference.LOWER
                 else GamePoints.points.desc()
             ).all()
-            
+
         b_ranking = GamePoints.query.filter_by(game_id=game.id)\
             .join(Teams)\
             .filter(Teams.team_type == TeamType.B)\
@@ -409,15 +390,15 @@ def admin_gog_ranking():
                 GamePoints.points.asc() if game.scoring_preference == ScoringPreference.LOWER
                 else GamePoints.points.desc()
             ).all()
-            
+
         game_leaderboards['A_Teams'].append((game, a_ranking))
         game_leaderboards['B_Teams'].append((game, b_ranking))
-    
+
     return render_template('gog/admin/gog_ranking.html',
-                         teams_a=teams_a,
-                         teams_b=teams_b,
-                         games=games,
-                         game_leaderboards=game_leaderboards)
+                           teams_a=teams_a,
+                           teams_b=teams_b,
+                           games=games,
+                           game_leaderboards=game_leaderboards)
 
 
 def get_unread_message_count():
@@ -435,16 +416,15 @@ def messages_inbox():
     for conv in conversations:
         conv.unread_count = Message.query.filter(
             Message.conversation_id == conv.id,
-            Message.is_from_admin == False,  # Messages FROM users
-            Message.is_read == False         # That are NOT read
+            Message.is_from_admin == False,
+            Message.is_read == False
         ).count()
 
-    # Recalculate global unread count exactly as in dashboard
     unread_count = Message.query.filter(
         Message.is_from_admin == False,
         Message.is_read == False
     ).count()
-    
+
     return render_template('gog/admin/messages_inbox.html',
                            conversations=conversations,
                            unread_count=unread_count)
@@ -462,7 +442,7 @@ def messages_conversation(conversation_id):
         if content:
             message = Message(
                 conversation_id=conversation.id,
-                sender_id=current_user.id,
+                admin_sender_id=current_user.id,  # link to admins table
                 content=content,
                 is_from_admin=True,
                 is_read=False
@@ -481,11 +461,10 @@ def messages_conversation(conversation_id):
             flash('Antwort gesendet!')
         return redirect(url_for('admin.messages_conversation', conversation_id=conversation_id))
 
-    # Don't automatically mark messages as read - let admin do it manually
     unread_count = get_unread_message_count()
     return render_template('gog/admin/messages_conversation.html',
-                         conversation=conversation,
-                         unread_count=unread_count)
+                           conversation=conversation,
+                           unread_count=unread_count)
 
 
 @admin.route('/messages/new', methods=['GET', 'POST'])
@@ -501,23 +480,22 @@ def messages_new():
             flash('Bitte einen Nutzer auswählen.')
             return redirect(url_for('admin.messages_new'))
 
-        user = User.query.filter_by(id=user_id, is_admin=False).first()
+        # Look up only in the users table (regular users)
+        user = User.query.get(user_id)
         if not user:
             flash('Nutzer nicht gefunden.')
             return redirect(url_for('admin.messages_new'))
 
-        # Get or create conversation for this user
         conversation = Conversation.query.filter_by(user_id=user.id).first()
         if not conversation:
             conversation = Conversation(user_id=user.id)
             db.session.add(conversation)
             db.session.commit()
 
-        # Send message if provided
         if content:
             message = Message(
                 conversation_id=conversation.id,
-                sender_id=current_user.id,
+                admin_sender_id=current_user.id,  # link to admins table
                 content=content,
                 is_from_admin=True,
                 is_read=False
@@ -533,25 +511,24 @@ def messages_new():
                 }, room=f'user_{conversation.user_id}')
             except Exception as e:
                 logger.error(f"Socket emit failed: {e}")
-                
+
             flash('Nachricht gesendet!')
 
         return redirect(url_for('admin.messages_conversation', conversation_id=conversation.id))
 
-    # GET: Show user selection form
-    # Get users without existing conversations
+    # GET: show user selection form — only regular users
     users_with_conversations = db.session.query(Conversation.user_id).all()
     users_with_conv_ids = [u[0] for u in users_with_conversations]
 
-    all_users = User.query.filter_by(is_admin=False).all()
+    all_users = User.query.all()
     users_without_conv = [u for u in all_users if u.id not in users_with_conv_ids]
     users_with_conv = [u for u in all_users if u.id in users_with_conv_ids]
 
     unread_count = get_unread_message_count()
     return render_template('gog/admin/messages_new.html',
-                         users_without_conv=users_without_conv,
-                         users_with_conv=users_with_conv,
-                         unread_count=unread_count)
+                           users_without_conv=users_without_conv,
+                           users_with_conv=users_with_conv,
+                           unread_count=unread_count)
 
 
 @admin.route('/messages/<int:conversation_id>/mark-read', methods=['POST'])

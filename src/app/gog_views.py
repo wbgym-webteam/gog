@@ -1,7 +1,7 @@
 #gog\src\app\gog_views.py
 from flask import Flask, render_template, request, redirect, url_for, Blueprint, current_app, flash, session
 from . import db, socketio
-from .models import Game, Teams, GamePoints, Log, TeamType, User, DependencyType, ScoringPreference, Conversation, Message
+from .models import Game, Teams, GamePoints, Log, TeamType, User, Admin, DependencyType, ScoringPreference, Conversation, Message
 from sqlalchemy import func
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -50,7 +50,8 @@ def get_db_connection():
 def regular_user_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.is_administrator:
+        # Admins are in a separate table; if an Admin somehow ends up here, reject them
+        if not current_user.is_authenticated or isinstance(current_user, Admin):
             flash("Please login with a regular user account to access this area.")
             return redirect(url_for('gog.login'))
         return f(*args, **kwargs)
@@ -93,7 +94,8 @@ def login():
     if request.method == "POST":    #verifies the user login
         username = request.form.get("username")
         password = request.form.get("password")
-        user = User.query.filter_by(username=username, is_admin=False).first()
+        # Only look in the users table — admins have their own table and login route
+        user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
             # Clear any admin session when regular user logs in

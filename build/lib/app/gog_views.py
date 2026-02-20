@@ -1,6 +1,7 @@
+#gog\src\app\gog_views.py
 from flask import Flask, render_template, request, redirect, url_for, Blueprint, current_app, flash, session
-from . import db
-from .models import Game, Teams, GamePoints, Log, TeamType, User, DependencyType, ScoringPreference, Conversation, Message
+from . import db, socketio
+from .models import Game, Teams, GamePoints, Log, TeamType, User, Admin, DependencyType, ScoringPreference, Conversation, Message
 from sqlalchemy import func
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -49,7 +50,8 @@ def get_db_connection():
 def regular_user_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.is_administrator:
+        # Admins are in a separate table; if an Admin somehow ends up here, reject them
+        if not current_user.is_authenticated or isinstance(current_user, Admin):
             flash("Please login with a regular user account to access this area.")
             return redirect(url_for('gog.login'))
         return f(*args, **kwargs)
@@ -92,9 +94,12 @@ def login():
     if request.method == "POST":    #verifies the user login
         username = request.form.get("username")
         password = request.form.get("password")
-        user = User.query.filter_by(username=username, is_admin=False).first()
+        # Only look in the users table — admins have their own table and login route
+        user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
+            # Clear any admin session when regular user logs in
+            session.pop('is_admin', None)
             login_user(user)
             return redirect(url_for("gog.dashboard")) #if true credential, do this
         else:
@@ -222,9 +227,24 @@ def logout():
     return redirect(url_for('gog.login'))
 
 
-@gog.route("/messages", methods=["GET", "POST"])
+@gog.route("/messages/mark-read", methods=["POST"])
 @login_required
 @regular_user_required
+def mark_messages_read():
+    """Mark all admin messages as read for the current user's conversation"""
+    conversation = Conversation.query.filter_by(user_id=current_user.id).first()
+    if conversation:
+        Message.query.filter_by(
+            conversation_id=conversation.id,
+            is_from_admin=True,
+            is_read=False
+        ).update({'is_read': True})
+        db.session.commit()
+    return '', 204
+
+
+@gog.route("/messages", methods=["GET", "POST"])
+@login_required
 def messages():
     # Get or create conversation for this user
     conversation = Conversation.query.filter_by(user_id=current_user.id).first()
@@ -236,6 +256,7 @@ def messages():
     if request.method == "POST":
         content = request.form.get("message", "").strip()
         if content:
+            # 1. Save to Database
             message = Message(
                 conversation_id=conversation.id,
                 sender_id=current_user.id,
@@ -246,6 +267,20 @@ def messages():
             db.session.add(message)
             conversation.updated_at = datetime.utcnow()
             db.session.commit()
+
+            # 2. TRIGGER THE SOCKET NOTIFICATION (The "Shout")
+            try:
+                print(f"Emitting notification to admins for conversation {conversation.id}") # Debug
+                socketio.emit('notification', {
+                    'type': 'new_message',
+                    'conversation_id': conversation.id, # Critical: tells admin WHICH conversation to update
+                    'content': message.content,
+                    'from': current_user.username,
+                    'timestamp': datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+                }, room='admins') # Send only to admins
+            except Exception as e:
+                print(f"Socket emit error: {e}")
+
             flash("Nachricht gesendet!")
         return redirect(url_for('gog.messages'))
 
@@ -255,9 +290,10 @@ def messages():
         is_from_admin=True,
         is_read=False
     ).all()
-    for msg in unread_admin_messages:
-        msg.is_read = True
-    db.session.commit()
+    
+    if unread_admin_messages:
+        for msg in unread_admin_messages:
+            msg.is_read = True
+        db.session.commit()
 
     return render_template("gog/gog_messages.html", conversation=conversation)
-

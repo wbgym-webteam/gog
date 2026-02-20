@@ -5,6 +5,17 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from datetime import timedelta
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+import sqlite3
+
+# Enable FK enforcement for every SQLite connection
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 class Config:
     SQLALCHEMY_DATABASE_URI = 'sqlite:///wbgym.db'
@@ -38,7 +49,11 @@ def create_app(config_class=Config):
 
     @login_manager.user_loader
     def load_user(user_id):
-        from .models import User
+        from .models import User, Admin
+        # Flask-Login stores only one ID; check the session to know which table to query
+        from flask import session
+        if session.get('is_admin'):
+            return Admin.query.get(int(user_id))
         return User.query.get(int(user_id))
 
     with app.app_context():

@@ -38,7 +38,11 @@ def create_app(config_class=Config):
 
     @login_manager.user_loader
     def load_user(user_id):
-        from .models import User
+        from .models import User, Admin
+        # Flask-Login stores only one ID; check the session to know which table to query
+        from flask import session
+        if session.get('is_admin'):
+            return Admin.query.get(int(user_id))
         return User.query.get(int(user_id))
 
     with app.app_context():

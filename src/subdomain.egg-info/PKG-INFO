@@ -10,6 +10,8 @@ Requires-Dist: Flask-login
 Requires-Dist: Flask-Migrate
 Requires-Dist: werkzeug
 Requires-Dist: flask-socketio
+Requires-Dist: eventlet
+Requires-Dist: gunicorn
 Dynamic: license-file
 
 # Subdomain for _wbgym.de_
@@ -33,7 +35,7 @@ This is the repository, where the Weinberg Secondary School develops a subdomain
 And run the `main.py`-file!
 
 # initialize migration repository, if it has not been initialized yet
-
+ 
   - change directory to src
   - type in the terminal
     - flask db init
@@ -47,37 +49,6 @@ And run the `main.py`-file!
 # Admin login accessible through
 
 - /gog/admin/login
-
-# CLI Commands: 
-## Admin User Creation
-
-  - change directory to src
-  - type in the terminal
-    - flask create-admin
-
-## Admin list Command
-  
-  - change directory to src
-  - type in the terminal
-    - flask list-admins
-
-## Deleate Admin Account
-
-  - change directory to src
-  - type in the terminal
-    - flask delete-admin
-
-## Reset all Data (except delete Admin Accounts)
-
-  - change directory to src
-  - type in the terminal
-    - flask reset-all 
-
-## List all Commands in the Terminal
-
-  - change directory to src
-  - type in the terminal
-    - flask help
 
 
 
@@ -115,7 +86,7 @@ And run the `main.py`-file!
 •	Add the following configuration to the file and if necessary adapt some of the Statements:
 
 [Unit]
-Description=Gunicorn instance to serve Flask app
+Description=Game of Grapes Flask App with SocketIO
 After=network.target
 
 [Service]
@@ -123,8 +94,9 @@ User=webteam
 Group=www-data
 WorkingDirectory=/gog/gog/src
 Environment="PATH=/gog/gog/src/.venv/bin"
-ExecStart=/gog/gog/src/.venv/bin/python -m gunicorn -w 4 -b 0.0.0.0:8000 main:app
+ExecStart=/gog/gog/src/.venv/bin/python -m gunicorn -w 4 -k eventlet -b 0.0.0.0:8000 main:application
 Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
