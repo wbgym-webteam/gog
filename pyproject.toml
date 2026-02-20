@@ -4,4 +4,12 @@ version = "0.1.0"
 description = "WBGYM subdomain"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["Flask", "Flask-login", "Flask-Migrate", "werkzeug", "flask-socketio", "eventlet", "gunicorn"]
+dependencies = [
+    "Flask==3.0.3",
+    "Flask-Login==0.6.3",
+    "Flask-Migrate==4.1.0",
+    "Flask-SocketIO==5.6.0",
+    "werkzeug==3.1.6",
+    "eventlet==0.40.4",
+    "gunicorn==25.1.0"
+]
