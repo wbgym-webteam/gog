@@ -247,3 +247,5 @@ Important: test this full restore flow in staging before relying on it in produc
 For accidental destructive SQL commands (for example `DELETE FROM games;`), use:
 
 - `docs/documentations/incident_accidental_delete_recovery.md`
+- For exact verified setup command order, use:
+- `docs/documentations/postgres_rpo_5m_verified_steps.md`
