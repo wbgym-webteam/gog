@@ -34,7 +34,7 @@ def _load_env_file(env_file: Path) -> None:
 
 
 def _build_database_uri() -> str:
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = os.environ.get("DB_URL") or os.environ.get("DATABASE_URL")
     if database_url:
         return database_url
 
