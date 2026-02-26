@@ -210,7 +210,6 @@ def delete_team(team_id):
 @admin.route('/games/create', methods=['GET'])
 @admin_required
 def create_game_form():
-    session.pop('_flashes', None)
     return render_template('gog/admin/create_game.html')
 
 @admin.route('/games/create', methods=['POST'])
@@ -229,7 +228,7 @@ def create_game():
         return redirect(url_for('admin.create_game_form'))
 
     try:
-        scoring_preference = ScoringPreference(scoring_pref)
+        scoring_preference = ScoringPreference((scoring_pref or '').upper())
     except ValueError:
         flash('Invalid scoring preference!', 'admin')
         return redirect(url_for('admin.create_game_form'))
