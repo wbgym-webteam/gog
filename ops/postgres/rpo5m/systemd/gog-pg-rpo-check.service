@@ -1,0 +1,8 @@
+[Unit]
+Description=Verify GoG PostgreSQL WAL archive freshness
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/gog/postgres-backup.env
+ExecStart=/opt/gog/ops/postgres/rpo5m/verify_rpo.sh

@@ -111,12 +111,12 @@ def create_user():
     username = request.form['username']
     password = request.form['password']
 
-    if User.query.filter_by(username=username).first():
+    if User.with_deleted().filter_by(username=username).first():
         flash('Username already exists!')
         return redirect(url_for('admin.dashboard'))
 
     # Also prevent collision with admin usernames
-    if Admin.query.filter_by(username=username).first():
+    if Admin.with_deleted().filter_by(username=username).first():
         flash('Username already exists!')
         return redirect(url_for('admin.dashboard'))
 
@@ -133,7 +133,12 @@ def create_user():
 @admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
-    db.session.delete(user)
+    user.soft_delete()
+    conversation = Conversation.query.filter_by(user_id=user.id).first()
+    if conversation:
+        conversation.soft_delete()
+        for message in Message.query.filter_by(conversation_id=conversation.id).all():
+            message.soft_delete()
     db.session.commit()
 
     flash('User deleted successfully!')
@@ -154,7 +159,7 @@ def create_team():
 
     team_id = f"{type_id.lower()}{number}"
 
-    if Teams.query.filter_by(id=team_id).first():
+    if Teams.with_deleted().filter_by(id=team_id).first():
         flash('Team already exists!')
         return redirect(url_for('admin.dashboard'))
 
@@ -178,13 +183,17 @@ def delete_team(team_id):
         team = Teams.query.get_or_404(team_id)
         logger.info(f"Found team to delete: {team.id}")
 
-        points_deleted = GamePoints.query.filter_by(team_id=team_id).delete()
-        logger.info(f"Deleted {points_deleted} game points records")
+        points = GamePoints.query.filter_by(team_id=team_id).all()
+        for point in points:
+            point.soft_delete()
+        logger.info(f"Soft-deleted {len(points)} game points records")
 
-        logs_deleted = Log.query.filter_by(team_id=team_id).delete()
-        logger.info(f"Deleted {logs_deleted} log records")
+        logs = Log.query.filter_by(team_id=team_id).all()
+        for log in logs:
+            log.soft_delete()
+        logger.info(f"Soft-deleted {len(logs)} log records")
 
-        db.session.delete(team)
+        team.soft_delete()
         db.session.commit()
 
         logger.info(f"Successfully deleted team {team_id}")
@@ -247,7 +256,11 @@ def create_game():
 @admin_required
 def delete_game(game_id):
     game = Game.query.get_or_404(game_id)
-    db.session.delete(game)
+    for game_point in GamePoints.query.filter_by(game_id=game.id).all():
+        game_point.soft_delete()
+    for log in Log.query.filter_by(game_id=game.id).all():
+        log.soft_delete()
+    game.soft_delete()
     db.session.commit()
 
     flash('Game deleted successfully!')
@@ -327,14 +340,14 @@ def delete_log(log_id):
     team_id = log.team_id
 
     try:
-        db.session.delete(log)
+        log.soft_delete()
 
         remaining_logs = Log.query.filter_by(team_id=team_id, game_id=game_id).count()
 
         if remaining_logs == 0:
             game_point = GamePoints.query.filter_by(team_id=team_id, game_id=game_id).first()
             if game_point:
-                db.session.delete(game_point)
+                game_point.soft_delete()
 
         db.session.commit()
 
@@ -487,6 +500,10 @@ def messages_new():
             return redirect(url_for('admin.messages_new'))
 
         conversation = Conversation.query.filter_by(user_id=user.id).first()
+        if not conversation:
+            conversation = Conversation.with_deleted().filter_by(user_id=user.id).first()
+            if conversation and conversation.is_deleted:
+                conversation.restore()
         if not conversation:
             conversation = Conversation(user_id=user.id)
             db.session.add(conversation)

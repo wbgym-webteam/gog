@@ -1,0 +1,10 @@
+[Unit]
+Description=Run GoG PostgreSQL base backup daily
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+Unit=gog-pg-basebackup.service
+
+[Install]
+WantedBy=timers.target

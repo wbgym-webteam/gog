@@ -16,12 +16,12 @@ def create_admin_command():
     username = click.prompt('Username')
 
     # Check if username already taken in admins table
-    if Admin.query.filter_by(username=username).first():
+    if Admin.with_deleted().filter_by(username=username).first():
         click.echo('Error: An admin with this username already exists')
         return
 
     # Also prevent collision with regular user usernames
-    if User.query.filter_by(username=username).first():
+    if User.with_deleted().filter_by(username=username).first():
         click.echo('Error: A regular user with this username already exists')
         return
 
@@ -79,9 +79,9 @@ def delete_admin_command():
         return
 
     try:
-        db.session.delete(admin)
+        admin.soft_delete()
         db.session.commit()
-        click.echo(f'Admin user "{username}" has been deleted successfully')
+        click.echo(f'Admin user "{username}" has been soft-deleted successfully')
     except Exception as e:
         db.session.rollback()
         click.echo(f'Error deleting admin user: {str(e)}')
@@ -96,24 +96,34 @@ def reset_all_command():
 
     try:
         from .models import Log
-        Log.query.delete()
-        click.echo('Deleted all logs')
+        logs = Log.query.all()
+        for log in logs:
+            log.soft_delete()
+        click.echo('Soft-deleted all logs')
 
         from .models import GamePoints
-        GamePoints.query.delete()
-        click.echo('Deleted all game points')
+        game_points = GamePoints.query.all()
+        for game_point in game_points:
+            game_point.soft_delete()
+        click.echo('Soft-deleted all game points')
 
         from .models import Game
-        Game.query.delete()
-        click.echo('Deleted all games')
+        games = Game.query.all()
+        for game in games:
+            game.soft_delete()
+        click.echo('Soft-deleted all games')
 
         from .models import Teams
-        Teams.query.delete()
-        click.echo('Deleted all teams')
+        teams = Teams.query.all()
+        for team in teams:
+            team.soft_delete()
+        click.echo('Soft-deleted all teams')
 
         # Delete all regular users (admins are in a separate table and are preserved)
-        User.query.delete()
-        click.echo('Deleted all regular users')
+        users = User.query.all()
+        for user in users:
+            user.soft_delete()
+        click.echo('Soft-deleted all regular users')
 
         db.session.commit()
         click.echo('All data has been reset successfully!')

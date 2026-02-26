@@ -249,6 +249,10 @@ def messages():
     # Get or create conversation for this user
     conversation = Conversation.query.filter_by(user_id=current_user.id).first()
     if not conversation:
+        conversation = Conversation.with_deleted().filter_by(user_id=current_user.id).first()
+        if conversation and conversation.is_deleted:
+            conversation.restore()
+    if not conversation:
         conversation = Conversation(user_id=current_user.id)
         db.session.add(conversation)
         db.session.commit()

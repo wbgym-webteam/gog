@@ -2,12 +2,30 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from enum import Enum
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from . import db  # Only import db from __init__.py
 
 
-class User(UserMixin, db.Model):    #creates the regular users Account
+class SoftDeleteMixin:
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
+
+    def soft_delete(self):
+        if self.deleted_at is None:
+            self.deleted_at = datetime.utcnow()
+
+    def restore(self):
+        self.deleted_at = None
+
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
+
+    @classmethod
+    def with_deleted(cls):
+        return db.session.query(cls).execution_options(include_deleted=True)
+
+
+class User(UserMixin, SoftDeleteMixin, db.Model):    #creates the regular users Account
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -28,7 +46,7 @@ class User(UserMixin, db.Model):    #creates the regular users Account
                            passive_deletes=True)
 
 
-class Admin(UserMixin, db.Model):   #creates the admin/super users Account in its own table
+class Admin(UserMixin, SoftDeleteMixin, db.Model):   #creates the admin/super users Account in its own table
     __tablename__ = 'admins'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -88,7 +106,7 @@ class ScoringPreference(Enum):
         return translations[self.value]
 
 
-class Teams(db.Model):  #creates the model for the teams
+class Teams(SoftDeleteMixin, db.Model):  #creates the model for the teams
     __tablename__ = 'teams'
     id = db.Column(db.String(10), primary_key=True)  # Unique ID like a1, a2, b1, b2
     team_name = db.Column(db.String(100), nullable=True)
@@ -113,7 +131,7 @@ class Teams(db.Model):  #creates the model for the teams
     def __repr__(self):
         return f"{self.team_name} ({self.team_type.value})"
 
-class Game(db.Model):   #creates the model for the games
+class Game(SoftDeleteMixin, db.Model):   #creates the model for the games
     __tablename__ = 'games'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100), nullable=False)
@@ -131,7 +149,7 @@ class Game(db.Model):   #creates the model for the games
         return f"{self.name} ({self.get_german_dependency_type()}, {self.get_german_scoring_preference()})"
 
 
-class GamePoints(db.Model): #defines the model for the game points
+class GamePoints(SoftDeleteMixin, db.Model): #defines the model for the game points
     __tablename__ = 'game_points'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     team_id = db.Column(db.String(10),
@@ -149,7 +167,7 @@ class GamePoints(db.Model): #defines the model for the game points
         return f"{self.team.team_name} - {self.game.name}: {self.points} points"
 
 
-class Log(db.Model):    #creates the model for the logs
+class Log(SoftDeleteMixin, db.Model):    #creates the model for the logs
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     team_id = db.Column(db.String(10),
@@ -167,7 +185,7 @@ class Log(db.Model):    #creates the model for the logs
     game = db.relationship('Game', back_populates='logs')
 
 
-class Conversation(db.Model):
+class Conversation(SoftDeleteMixin, db.Model):
     """One conversation per user with the admin team"""
     __tablename__ = 'conversations'
     id = db.Column(db.Integer, primary_key=True)
@@ -179,7 +197,7 @@ class Conversation(db.Model):
     messages = db.relationship('Message', back_populates='conversation', cascade='all, delete-orphan', order_by='Message.created_at')
 
 
-class Message(db.Model):
+class Message(SoftDeleteMixin, db.Model):
     """Individual message within a conversation"""
     __tablename__ = 'messages'
     id = db.Column(db.Integer, primary_key=True)

@@ -34,6 +34,12 @@ And run the `main.py`-file!
 
 - /gog/admin/login
 
+# PostgreSQL RPO <= 5 minutes
+
+- See `docs/documentations/postgres_rpo_5m.md` for production setup (WAL archiving + base backups + systemd timers).
+- See `docs/documentations/production_deploy_rpo_soft_delete.md` for full deployment runbook (RPO backups + soft delete rollout).
+- See `docs/documentations/incident_accidental_delete_recovery.md` for emergency recovery after accidental `DELETE FROM ...` in prod.
+
 
 
 

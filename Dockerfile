@@ -4,5 +4,5 @@ ADD * /
 
 EXPOSE 8000
 WORKDIR /
-RUN uv sync --frozen
+RUN uv sync
 CMD uv run gunicorn --worker-class eventlet -w 1 --chdir src main:app
