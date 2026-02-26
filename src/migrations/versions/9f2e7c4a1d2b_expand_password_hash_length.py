@@ -17,36 +17,70 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table('users', schema=None, recreate='always') as batch_op:
-        batch_op.alter_column(
+    bind = op.get_bind()
+    if bind.dialect.name == 'postgresql':
+        op.alter_column(
+            'users',
             'password_hash',
             existing_type=sa.String(length=128),
             type_=sa.String(length=255),
             existing_nullable=False
         )
+        op.alter_column(
+            'admins',
+            'password_hash',
+            existing_type=sa.String(length=128),
+            type_=sa.String(length=255),
+            existing_nullable=False
+        )
+    else:
+        with op.batch_alter_table('users', schema=None, recreate='always') as batch_op:
+            batch_op.alter_column(
+                'password_hash',
+                existing_type=sa.String(length=128),
+                type_=sa.String(length=255),
+                existing_nullable=False
+            )
 
-    with op.batch_alter_table('admins', schema=None, recreate='always') as batch_op:
-        batch_op.alter_column(
-            'password_hash',
-            existing_type=sa.String(length=128),
-            type_=sa.String(length=255),
-            existing_nullable=False
-        )
+        with op.batch_alter_table('admins', schema=None, recreate='always') as batch_op:
+            batch_op.alter_column(
+                'password_hash',
+                existing_type=sa.String(length=128),
+                type_=sa.String(length=255),
+                existing_nullable=False
+            )
 
 
 def downgrade():
-    with op.batch_alter_table('admins', schema=None, recreate='always') as batch_op:
-        batch_op.alter_column(
+    bind = op.get_bind()
+    if bind.dialect.name == 'postgresql':
+        op.alter_column(
+            'admins',
             'password_hash',
             existing_type=sa.String(length=255),
             type_=sa.String(length=128),
             existing_nullable=False
         )
+        op.alter_column(
+            'users',
+            'password_hash',
+            existing_type=sa.String(length=255),
+            type_=sa.String(length=128),
+            existing_nullable=False
+        )
+    else:
+        with op.batch_alter_table('admins', schema=None, recreate='always') as batch_op:
+            batch_op.alter_column(
+                'password_hash',
+                existing_type=sa.String(length=255),
+                type_=sa.String(length=128),
+                existing_nullable=False
+            )
 
-    with op.batch_alter_table('users', schema=None, recreate='always') as batch_op:
-        batch_op.alter_column(
-            'password_hash',
-            existing_type=sa.String(length=255),
-            type_=sa.String(length=128),
-            existing_nullable=False
-        )
+        with op.batch_alter_table('users', schema=None, recreate='always') as batch_op:
+            batch_op.alter_column(
+                'password_hash',
+                existing_type=sa.String(length=255),
+                type_=sa.String(length=128),
+                existing_nullable=False
+            )
