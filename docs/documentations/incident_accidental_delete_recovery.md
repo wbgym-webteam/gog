@@ -40,6 +40,10 @@ Choose one:
   - Recover deleted table(s) from a PITR recovery instance.
   - Import only required data back to production.
   - Lower downtime.
+  - Concrete Ubuntu/PostgreSQL-16 commands:
+    - `docs/documentations/postgres_temp_recovery_5433.md`
+    - Fish-shell variant:
+      - `docs/documentations/postgres_temp_recovery_5433_fish.md`
 
 - Mode B: Full database PITR
   - Roll full DB back to pre-incident time.
@@ -58,44 +62,19 @@ Example target time:
 - Incident at `2026-02-26 14:22:15 UTC`
 - Set `TARGET_TIME_UTC=2026-02-26 14:22:10 UTC`
 
+## Critical preflight before restore
+
+Confirm that your selected base backup has continuous WAL coverage to target time.
+If archiving was just enabled recently, create a fresh base backup and use that one for restore attempts.
+
 ## Mode A: Table-level restore (recommended)
 
 ### A1. Create temporary recovery PostgreSQL instance
 
-1. Stop temp instance if running:
-```bash
-sudo systemctl stop postgresql-recovery || true
-```
+Use the exact verified steps in:
 
-2. Prepare empty recovery data dir:
-```bash
-sudo rm -rf /var/lib/postgresql/recovery-data
-sudo mkdir -p /var/lib/postgresql/recovery-data
-sudo chown -R postgres:postgres /var/lib/postgresql/recovery-data
-```
-
-3. Restore latest base backup into recovery dir (example, adapt filename):
-```bash
-sudo -u postgres tar -xzf /var/backups/gog/postgres/base/<LATEST_BACKUP>/base.tar.gz -C /var/lib/postgresql/recovery-data
-```
-
-4. Configure PITR in recovery `postgresql.auto.conf`:
-```conf
-restore_command = 'cp /var/backups/gog/postgres/wal/%f %p'
-recovery_target_time = '2026-02-26 14:22:10 UTC'
-recovery_target_action = 'promote'
-```
-
-5. Ensure recovery signal file exists:
-```bash
-sudo -u postgres touch /var/lib/postgresql/recovery-data/recovery.signal
-```
-
-6. Start recovery instance (port different from prod, e.g. `5433`).
-
-Note:
-- Instance-specific start command depends on distro/service layout.
-- Use your existing PostgreSQL cluster tooling.
+- `docs/documentations/postgres_temp_recovery_5433.md`
+- `docs/documentations/postgres_temp_recovery_5433_fish.md`
 
 ### A2. Validate recovered data
 

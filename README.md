@@ -40,6 +40,8 @@ And run the `main.py`-file!
 - See `docs/documentations/postgres_rpo_5m_verified_steps.md` for exact verified command order (copy/paste runbook).
 - See `docs/documentations/production_deploy_rpo_soft_delete.md` for full deployment runbook (RPO backups + soft delete rollout).
 - See `docs/documentations/incident_accidental_delete_recovery.md` for emergency recovery after accidental `DELETE FROM ...` in prod.
+- See `docs/documentations/postgres_temp_recovery_5433.md` for exact commands to run temporary PITR recovery instance on port `5433`.
+- See `docs/documentations/postgres_temp_recovery_5433_fish.md` for the same temporary recovery process in Fish shell syntax.
 
 
 

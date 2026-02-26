@@ -154,6 +154,20 @@ Expected:
 - WAL files exist in `/var/backups/gog/postgres/wal`
 - `verify_rpo.sh` prints: `OK: latest archived WAL age ... (<= 300s)`
 
+## 10.1 Create first valid PITR baseline (mandatory)
+
+After WAL archiving is confirmed working, create one more base backup:
+
+```bash
+sudo systemctl start gog-pg-basebackup.service
+sudo systemctl status gog-pg-basebackup.service --no-pager
+```
+
+Why:
+- PITR requires a continuous WAL chain starting at the selected base backup.
+- A base backup created before archiving was correctly enabled may be unusable for later recovery targets.
+- Treat this post-validation base backup as your first "known-good" recovery baseline.
+
 ## 11. Enable automation (timers)
 
 ```bash
@@ -181,6 +195,11 @@ sudo systemctl status gog-pg-rpo-check.timer --no-pager
 5. Wrong path in `archive_command`
 - Must match actual installed script path (`/usr/local/lib/gog-rpo5m/archive_wal.sh`).
 
+6. Recovery fails with `could not locate required checkpoint record`
+- WAL continuity gap from chosen base backup to target time.
+- Fix: choose a newer base backup and ensure WAL files from that backup onward exist.
+- After initial setup, always create a fresh base backup once archiving check is green.
+
 ## 13. Daily health checks
 
 ```bash
@@ -189,4 +208,3 @@ sudo systemctl status gog-pg-rpo-check.timer --no-pager
 sudo systemctl start gog-pg-rpo-check.service
 sudo systemctl status gog-pg-rpo-check.service --no-pager
 ```
-
