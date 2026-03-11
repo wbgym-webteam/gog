@@ -1,0 +1,190 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #560d4f, #8846a4);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    color: #fff;
+}
+
+.container {
+    width: 95%;
+    max-width: 550px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 40px 35px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(12px);
+    text-align: center;
+    margin-top: 50px;
+}
+
+h1 {
+    font-size: 30px;
+    margin-bottom: 15px;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+h2 {
+    font-size: 22px;
+    margin-bottom: 18px;
+    color: #8846a4;
+    border-bottom: 2px solid #8846a4;
+    padding-bottom: 5px;
+}
+
+label {
+    font-size: 16px;
+    display: block;
+    margin: 12px 0 6px;
+    color: #8846a4;
+    font-weight: bold;
+    text-align: left;
+}
+
+.input-field, .dropdown, select {
+    width: 100%;
+    height: 50px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border: 2px solid #8846a4;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #000;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    display: block;
+}
+
+.input-field:focus, .dropdown:focus, select:focus {
+    border-color: #560d4f;
+    outline: none;
+    box-shadow: 0 0 8px rgba(74, 144, 226, 0.6);
+}
+
+select {
+    appearance: none;
+    background: url('data:image/svg+xml;utf8,<svg fill="%238846a4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 15px center/12px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+button {
+    width: 90%;
+    height: 48px;
+    padding: 12px 15px;
+    background: #560d4f;
+    color: #ffffff;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-weight: bold;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+    margin-top: 20px;
+}
+
+button:hover {
+    background: #8846a4;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.back-button {
+    width: 120px;
+    height: 40px;
+    font-size: 14px;
+    position: relative;
+    background: #560d4f;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin-bottom: 15px;
+}
+
+.back-button:hover {
+    background: #8846a4;
+    transform: translateY(-3px);
+}
+
+.back-button:active {
+    transform: translateY(0);
+}
+
+.game-standings {
+    text-align: left;
+    margin-top: 20px;
+    padding: 15px;
+}
+
+.game-standings h3 {
+    color: #560d4f;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    background: rgba(255, 255, 255, 0.85);
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 5px;
+    color: #000;
+    font-weight: bold;
+}
+
+/* Specific styling for the score input */
+#score_input {
+    width: 100%;
+    height: 50px;
+    padding: 12px 15px;
+    border: 2px solid #8846a4;
+    border-radius: 25px; /* 8px */
+    background: #ffffff;
+    color: #333;
+    font-size: 18px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#score_input:focus {
+    border-color: #560d4f;
+    box-shadow: 0 0 10px rgba(136, 70, 164, 0.3);
+    outline: none;
+    transform: scale(1.02);
+}
+
+#score_input::placeholder {
+    color: #999;
+    font-size: 16px;
+}
+
+/* Remove spinner buttons for number input */
+#score_input::-webkit-inner-spin-button,
+#score_input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#score_label {
+    color: #8846a4;
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    display: block;
+}

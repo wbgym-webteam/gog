@@ -1,0 +1,257 @@
+<!--gog\src\app\templates\gog\admin\messages_inbox.html-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Nachrichten</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_dashboard.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        .conversation-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .conversation-item {
+            background: #2d2d2d;
+            margin: 10px 0;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #fff;
+            position: relative;
+        }
+
+        .conversation-item:hover {
+            background: #404040;
+            transform: translateX(5px);
+        }
+
+        .conversation-info {
+            flex: 1;
+            margin-right: 15px;
+            min-width: 0;
+        }
+
+        .conversation-username {
+            font-size: 18px;
+            font-weight: bold;
+            color: #B19CD9;
+        }
+
+        .conversation-preview {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .conversation-time {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* --- RED CIRCLE BADGE --- */
+        .unread-badge {
+            background-color: #ff3b30; /* Red Color */
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+
+            /* Flex center to align number */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 11px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        /* Pop animation for new messages */
+        .pop-animation {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .no-conversations {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Nachrichten Inbox</h1>
+        
+        <div class="action-buttons">
+            <a href="{{ url_for('admin.dashboard') }}" class="action-button">Zurück zum Dashboard</a>
+            <a href="{{ url_for('admin.messages_new') }}" class="action-button" style="background: #4CAF50;">Neue Nachricht</a>
+
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Alle Unterhaltungen</h2>
+            
+            <ul class="conversation-list" id="conversationList">
+                {% if conversations %}
+                    {% for conv in conversations %}
+                        <a href="{{ url_for('admin.messages_conversation', conversation_id=conv.id) }}" 
+                           class="conversation-item" 
+                           id="conv-{{ conv.id }}">
+                            
+                            <div class="conversation-info">
+                                <div class="conversation-username">{{ conv.user.username }}</div>
+                                
+                                <div class="conversation-preview" id="preview-{{ conv.id }}">
+                                    {% if conv.messages %}
+                                        {{ conv.messages[-1].content[:60] }}{% if conv.messages[-1].content|length > 60 %}...{% endif %}
+                                    {% else %}
+                                        Keine Nachrichten
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="conversation-time" id="time-{{ conv.id }}">
+                                    {{ conv.updated_at.strftime('%d.%m.%Y %H:%M') }}
+                                </div>
+                            </div>
+
+                            {# Added robust checks: default(0) and int casting #}
+                            <span class="unread-badge" 
+                                  id="badge-{{ conv.id }}"
+                                  data-count="{{ conv.unread_count|default(0) }}"
+                                  style="display: {{ 'flex' if conv.unread_count|default(0)|int > 0 else 'none' }};">
+                                {{ conv.unread_count|default(0) }}
+                            </span>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-conversations" id="noConversationsMsg">
+                        Noch keine Nachrichten vorhanden.
+                    </div>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('connect', function() {
+            console.log('Admin Inbox: Connected to Real-time Updates');
+        });
+
+        socket.on('notification', function(data) {
+            console.log("Notification received:", data);
+
+            // CASE: New Message
+            if (data.type === 'new_message') {
+                const convId = data.conversation_id;
+                console.log("Processing new_message for conversation:", convId);
+
+                // Construct IDs exactly as they appear in HTML
+                const convRowId = `conv-${convId}`;
+                const badgeId = `badge-${convId}`;
+                const previewId = `preview-${convId}`;
+                const timeId = `time-${convId}`;
+
+                const convRow = document.getElementById(convRowId);
+                const badge = document.getElementById(badgeId);
+                const list = document.getElementById('conversationList');
+                const noMsg = document.getElementById('noConversationsMsg');
+
+                console.log("Elements found:", {
+                    convRow: !!convRow,
+                    badge: !!badge,
+                    list: !!list
+                });
+
+                // If conversation exists in the list
+                if (convRow && badge) {
+                    if (noMsg) noMsg.style.display = 'none';
+
+                    // 1. Update Preview Text
+                    const preview = document.getElementById(previewId);
+                    if (preview && data.content) {
+                        let text = data.content;
+                        if (text.length > 60) text = text.substring(0, 60) + "...";
+                        preview.textContent = text;
+                        console.log("Updated preview to:", text);
+                    }
+
+                    // 2. Update Time
+                    const time = document.getElementById(timeId);
+                    if (time && data.timestamp) {
+                        time.textContent = data.timestamp;
+                        console.log("Updated time to:", data.timestamp);
+                    }
+
+                    // 3. Increment Badge Count
+                    // Force integer parsing to be safe
+                    let currentCount = parseInt(badge.getAttribute('data-count') || "0", 10);
+                    console.log("Current badge count:", currentCount);
+                    currentCount++;
+                    console.log("New badge count:", currentCount);
+
+                    // Update DOM
+                    badge.setAttribute('data-count', currentCount);
+                    badge.textContent = currentCount;
+
+                    // FORCE DISPLAY FLEX
+                    badge.style.display = 'flex';
+                    console.log("Badge display set to flex, textContent:", badge.textContent);
+
+                    // Trigger Animation
+                    badge.classList.remove('pop-animation');
+                    void badge.offsetWidth; // trigger reflow
+                    badge.classList.add('pop-animation');
+
+                    // 4. Move to Top of List
+                    list.prepend(convRow);
+                    console.log("Moved conversation to top of list");
+                }
+                else {
+                    // Brand-new conversation — build and insert the row dynamically
+                    if (noMsg) noMsg.style.display = 'none';
+
+                    const newRow = document.createElement('a');
+                    newRow.href = '/gog/admin/messages/' + convId;
+                    newRow.className = 'conversation-item';
+                    newRow.id = 'conv-' + convId;
+
+                    let preview = data.content || '';
+                    if (preview.length > 60) preview = preview.substring(0, 60) + '...';
+
+                    newRow.innerHTML = `
+                        <div class="conversation-info">
+                            <div class="conversation-username">${data.from}</div>
+                            <div class="conversation-preview" id="preview-${convId}">${preview}</div>
+                            <div class="conversation-time" id="time-${convId}">${data.timestamp || ''}</div>
+                        </div>
+                        <span class="unread-badge pop-animation" id="badge-${convId}" data-count="1" style="display:flex;">1</span>
+                    `;
+
+                    list.prepend(newRow);
+                    console.log("New conversation row inserted for conversation", convId);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

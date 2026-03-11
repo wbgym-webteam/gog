@@ -1,0 +1,25 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neues Team erstellen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_forms.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Neues Team erstellen</h1>
+        <form method="POST">
+            <input type="text" name="name" placeholder="Team Name">
+            <select name="type" required>
+                <option value="A">A</option>
+                <option value="B">B</option>
+            </select>
+            <input type="number" name="number" placeholder="Team Nummer" required>
+            <button type="submit">Team erstellen</button>
+        </form>
+        <a href="{{ url_for('admin.dashboard') }}" class="action-button">Zur&uuml;ck zum Dashboard</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neues Spiel erstellen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_forms.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+</head>
+<body>
+    <div class="container login-container">
+        <h1>Neues Spiel erstellen</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% if category == 'admin' %}
+                        <div class="error-message">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <input type="text" name="name" placeholder="Game Name" required>
+            
+            <select name="dependency_type" required>
+                <option value="" disabled selected>Ausw&auml;hlen des Bepunktungstyps</option>
+                <option value="point">Punkte Abh&auml;ngig</option>
+                <option value="time">Zeit Abg&auml;ngig</option>
+            </select>
+            
+            <select name="scoring_preference" required>
+                <option value="" disabled selected>Bepunktungs Preferenze</option>
+                <option value="HIGHER">H&ouml;her ist besser</option>
+                <option value="LOWER">Niedriger ist besser</option>
+            </select>
+            
+            <button type="submit">Spiel erstellen</button>
+        </form>
+        <a href="{{ url_for('admin.dashboard') }}" class="action-button" style="margin-top: 20px;" onclick="clearFlashMessages()">Zur&uuml;ck zum Dashboard</a>
+    </div>
+
+    <script>
+        function clearFlashMessages() {
+            const messages = document.querySelectorAll('.error-message');
+            messages.forEach(msg => msg.remove());
+        }
+    </script>
+</body>
+</html>

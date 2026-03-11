@@ -1,0 +1,115 @@
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+}
+
+.login-container {
+    background: rgba(45, 45, 45, 0.9);
+    border-radius: 12px;
+    padding: 40px 30px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.login-container h1 {
+    font-size: 28px;
+    margin-bottom: 20px;
+    color: #9370DB;
+}
+
+.login-container p {
+    font-size: 14px;
+    margin-bottom: 30px;
+    color: #B19CD9;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border: 1px solid #4a4a4a;
+    border-radius: 8px;
+    font-size: 16px;
+    background: #363636;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.login-container input:focus {
+    outline: none;
+    border-color: #9370DB;
+    box-shadow: 0 0 6px rgba(147, 112, 219, 0.5);
+}
+
+.login-container button {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: #9370DB;
+    border: none;
+    color: white;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.login-container button:hover {
+    background-color: #8A2BE2;
+    transform: translateY(-3px);
+}
+
+.login-container button:active {
+    transform: translateY(0);
+}
+
+.login-container .error-message {
+    color: #ff4444;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+h2 {
+    color: #9370DB;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #9370DB;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #8A2BE2;
+}
+
+.flash-messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+}
+
+.flash-messages li {
+    color: #ff4444;
+    font-size: 14px;
+    padding: 10px;
+    margin: 5px 0;
+    text-align: center;
+    border-radius: 4px;
+}

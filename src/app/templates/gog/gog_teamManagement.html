@@ -1,0 +1,100 @@
+{% block content %}
+
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='gog/gog_teamManagement.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    
+    <script>
+        function goToDashboard() {
+            window.location.href = "/gog/dashboard";  // Updated URL
+        }
+
+        function updateInputType() {
+            const gameSelect = document.getElementById('game_select');
+            const selectedGame = gameSelect.options[gameSelect.selectedIndex];
+            const scoreInput = document.getElementById('score_input');
+            const scoreLabel = document.getElementById('score_label');
+            
+            if (selectedGame.dataset.type === 'time') {
+                scoreInput.type = 'number';
+                scoreInput.min = '0';
+                scoreInput.placeholder = 'Zeit in Sekunden';
+                scoreLabel.textContent = 'Zeit (Sekunden):';
+            } else {
+                scoreInput.type = 'number';
+                scoreInput.min = '0';
+                scoreInput.placeholder = 'Punkte';
+                scoreLabel.textContent = 'Punkte:';
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+    <h1>Punkte Verteilung</h1>
+
+    <div class="container">
+        <button class="back-button" onclick="goToDashboard()">Zurück</button>
+        <h2>Punktevergabe</h2>
+        <form method="POST" class="score-form">
+            <div class="form-group">
+                <label for="team_select">Team Auswahl:</label>
+                <select id="team_select" name="team_id" required>
+                    <option value="" disabled selected>Teams</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}">{{ team.team_name }} ({{ team.id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="game_select">Spiel Auswahl:</label>
+                <select id="game_select" name="game_id" required onchange="updateInputType()">
+                    <option value="" disabled selected>Spiele</option>
+                    {% for game in games %}
+                        <option value="{{ game.id }}" data-type="{{ game.dependency_type }}">
+                            {{ game.name }}
+                            {% if game.dependency_type == 'time' %}
+                                (Zeit Basierend)
+                            {% else %}
+                                (Punkte Basierend)
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label id="score_label" for="score_input">Punktzahl:</label>
+                <input id="score_input" name="score" type="number" min="0" required placeholder="Wert">
+            </div>
+
+            <button type="submit">Punktzahl einreichen</button>
+        </form>
+    </div>
+
+    <!--<div class="container">
+        <h2>Aktueller Stand</h2>
+        {% for game in games %}
+            <div class="game-standings">
+                <h3>{{ game.name }}</h3>
+                <ul>
+                {% for point in game.gamepoints %}
+                    <li>
+                        {{ point.team.team_name }}: 
+                        {% if game.dependency_type == 'time' %}
+                            {{ point.points }} seconds
+                        {% else %}
+                            {{ point.points }} points
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </div>-->
+
+</body>
+
+{% endblock %}

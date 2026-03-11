@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neuen Nutzter erstellen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_forms.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Neuen Nutzter erstellen</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="error-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Create User</button>
+        </form>
+        <a href="{{ url_for('admin.dashboard') }}" class="action-button">Zur&uuml;ck zum Dashboard</a>
+    </div>
+    <script>
+        function clearFlashMessages() {
+            const messages = document.querySelectorAll('.error-message');
+            messages.forEach(msg => msg.remove());
+        }
+        
+        // Clear messages when page loads
+        window.addEventListener('load', clearFlashMessages);
+    </script>
+</body>
+</html>

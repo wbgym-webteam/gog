@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spiel Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/game_logs.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+</head>
+<body>
+    <div class="container dashboard-container">
+        <h1>Spiel Logs</h1>
+        
+        <a href="{{ url_for('admin.dashboard') }}" class="action-button">Zurück zum Dashboard</a>
+
+        <div class="dashboard-section">
+            <div class="table-container">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th>Benutzer</th>
+                            <th>Team ID</th>
+                            <th>Team Name</th>
+                            <th>Spiel</th>
+                            <th>Punkte</th>
+                            <th>Zeit</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.user.username }}</td>
+                            <td>{{ log.team.id }}</td>
+                            <td>{{ log.team.team_name }}</td>
+                            <td>{{ log.game.name }}</td>
+                            <td>{{ log.points }}</td>
+                            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.edit_log', log_id=log.id) }}" class="action-button">Bearbeiten</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

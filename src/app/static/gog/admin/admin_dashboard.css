@@ -1,0 +1,148 @@
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #1a1a1a;
+    color: #fff;
+    min-height: 100vh;
+    font-family: arial;
+}
+
+.dashboard-container {
+    background: #2d2d2d;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    width: 80%;
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+.dashboard-container h1 {
+    font-size: 32px;
+    color: #9370DB;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.dashboard-container h2 {
+    font-size: 24px;
+    color: #B19CD9;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.action-button {
+    display: inline-block;
+    background-color: #9370DB;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover {
+    background-color: #8A2BE2;
+    transform: translateY(-2px);
+}
+
+.dashboard-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: #363636;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.user-list {
+    list-style: none;
+    padding: 0;
+}
+
+.user-list li {
+    background: #2d2d2d;
+    margin: 8px 0;
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s ease;
+}
+
+.user-list li:hover {
+    transform: translateX(5px);
+    background: #404040;
+}
+
+.user-list li span {
+    color: #fff;
+}
+
+.delete-button {
+    background-color: #ff4444 !important;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.delete-button:hover {
+    background-color: #ff0000 !important;
+    transform: translateY(-2px);
+}
+
+/* Add smooth scrollbar for longer content */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #9370DB;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #8A2BE2;
+}
+
+.notification-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: #ff3b30;
+            color: white;
+            border-radius: 50%;
+            padding: 4px 8px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 11px;
+            font-weight: bold;
+            line-height: 18px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }

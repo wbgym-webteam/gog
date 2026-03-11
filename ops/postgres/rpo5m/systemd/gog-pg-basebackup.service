@@ -1,0 +1,8 @@
+[Unit]
+Description=GoG PostgreSQL base backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/gog/postgres-backup.env
+ExecStart=/opt/gog/ops/postgres/rpo5m/base_backup.sh

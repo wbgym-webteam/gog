@@ -1,0 +1,51 @@
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #2d2d2d;
+    color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.logs-table thead {
+    background: #9370DB;
+}
+
+.logs-table th {
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: bold;
+    color: #fff;
+}
+
+.logs-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #404040;
+}
+
+.logs-table tbody tr:hover {
+    background: #404040;
+    transition: background-color 0.2s ease;
+}
+
+.logs-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .logs-table {
+        font-size: 14px;
+    }
+
+    .logs-table th,
+    .logs-table td {
+        padding: 8px 10px;
+    }
+}

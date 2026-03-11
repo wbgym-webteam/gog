@@ -1,0 +1,57 @@
+<!--Das hier ist die names zuteilung-->
+
+<!--{% extends './base.html' %}
+
+{% block title %}
+Setup for GoG
+{% endblock %}-->
+
+
+<!--{% block content %}-->
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='gog/gog_setup.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+</head>
+
+<body>
+    <h1>Team Setup</h1>
+
+    <div class="container">
+        <button class="back-button" onclick="goToDashboard()">Zurück</button>
+        <h2>Team Namen vergeben</h2>
+        
+        <form method="POST">
+            <label for="team_id">Team auswählen:</label>
+            <select name="team_id" id="team_id" class="input-field" required>
+                <option value="">Bitte wählen...</option>
+                {% for team in teams %}
+                <option value="{{ team.id }}">{{ team.id }} {% if team.team_name != team.id %}({{ team.team_name }}){% endif %}</option>
+                {% endfor %}
+            </select>
+
+            <label for="team_name">Teamname:</label>
+            <input type="text" id="team_name" name="team_name" class="input-field" placeholder="Neuen Teamnamen eingeben..." required>
+
+            <div class="button-container">
+                <button type="submit">Namen speichern</button>
+            </div>
+        </form>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        function goToDashboard() {
+            window.location.href = "/gog/dashboard";
+        }
+    </script>
+</body>
+<!--{% endblock %}-->

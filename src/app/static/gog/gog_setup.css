@@ -1,0 +1,127 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #560d4f, #8846a4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    max-width: 800px;
+    width: 90%;
+    margin: 20px auto;
+    position: relative;
+}
+
+h1 {
+    color: white;
+    text-align: center;
+    font-size: 2.5em;
+    margin: 30px 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+h2 {
+    color:  #560d4f;
+    margin-bottom: 25px;
+    text-align: center;
+    font-size: 1.8em;
+}
+
+label {
+    font-weight: bold;
+    color: #555;
+    font-size: 16px;
+    margin-top: 15px;
+    display: block;
+}
+
+.input-field, select {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 2px solid #560d4f;
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: white;
+    color: #333;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-field:focus, select:focus {
+    outline: none;
+    border-color: #764ba2;
+    box-shadow: 0 0 8px rgba(118, 75, 162, 0.3);
+}
+
+select {
+    appearance: none;
+    cursor: pointer;
+}
+
+button {
+    background: #560d4f;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.back-button {
+    background: #560d4f;
+    color: #ffffff;
+    padding: 8px 20px;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+}
+
+.back-button:hover {
+    background-color: #555;
+}
+
+.messages {
+    margin-top: 20px;
+    padding: 10px;
+}
+
+.messages p {
+    margin: 8px 0;
+    padding: 12px;
+    background-color: #f8f8f8;
+    border-left: 4px solid #560d4f;
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    .container {
+        width: 95%;
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    h2 {
+        font-size: 1.5em;
+    }
+}

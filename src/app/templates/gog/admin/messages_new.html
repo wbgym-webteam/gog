@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Neue Nachricht</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_dashboard.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    <style>
+        .user-select-form {
+            background: #363636;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #B19CD9;
+            font-weight: bold;
+        }
+
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #404040;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #2d2d2d;
+            color: #fff;
+            outline: none;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #9370DB;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .submit-button {
+            background: #9370DB;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-button:hover {
+            background: #8A2BE2;
+        }
+
+        .flash-message {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .flash-error {
+            background: #ff4444;
+        }
+
+        .user-section {
+            margin-top: 10px;
+        }
+
+        .user-section-title {
+            color: #888;
+            font-size: 12px;
+            padding: 5px 12px;
+            background: #404040;
+        }
+
+        .no-users {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
+
+        optgroup {
+            background: #2d2d2d;
+            color: #B19CD9;
+        }
+
+        option {
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Neue Nachricht</h1>
+        <div class="action-buttons">
+            <a href="{{ url_for('admin.messages_inbox') }}" class="action-button">Zurück zur Übersicht</a>
+            <a href="{{ url_for('admin.dashboard') }}" class="action-button">Dashboard</a>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="dashboard-section">
+            <h2>Nutzer kontaktieren</h2>
+
+            {% if users_without_conv or users_with_conv %}
+                <form method="POST" class="user-select-form">
+                    <div class="form-group">
+                        <label for="user_id">Nutzer auswählen:</label>
+                        <select name="user_id" id="user_id" required>
+                            <option value="">-- Nutzer auswählen --</option>
+                            {% if users_without_conv %}
+                                <optgroup label="Neue Unterhaltung starten">
+                                    {% for user in users_without_conv %}
+                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endif %}
+                            {% if users_with_conv %}
+                                <optgroup label="Bestehende Unterhaltung fortsetzen">
+                                    {% for user in users_with_conv %}
+                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Nachricht (optional):</label>
+                        <textarea name="message" id="message" placeholder="Nachricht eingeben..."></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-button">Nachricht senden</button>
+                </form>
+            {% else %}
+                <div class="no-users">
+                    Keine Nutzer vorhanden.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

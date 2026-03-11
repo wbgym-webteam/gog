@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log bearbeiten</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='gog/admin/admin_forms.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+</head>
+<body>
+    <div class="container login-container">
+        <h1>Log bearbeiten</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="error-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <label for="team_id">Team:</label>
+            <select name="team_id" id="team_id" required>
+                {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == log.team_id %}selected{% endif %}>
+                        {{ team.team_name }} ({{ team.id }})
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label for="game_id">Spiel:</label>
+            <select name="game_id" id="game_id" required>
+                {% for game in games %}
+                    <option value="{{ game.id }}" {% if game.id == log.game_id %}selected{% endif %}>
+                        {{ game.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label for="points">Punkte:</label>
+            <input type="number" name="points" id="points" value="{{ log.points }}" required>
+
+            <button type="submit">Aktualisieren</button>
+        </form>
+
+        <form method="POST" action="{{ url_for('admin.delete_log', log_id=log.id) }}" style="margin-top: 20px;">
+            <button type="submit" class="action-button" style="background-color: #dc3545;" onclick="return confirm('Sind Sie sicher, dass Sie diesen Eintrag löschen möchten?');">Eintrag Löschen</button>
+        </form>
+
+        <a href="{{ url_for('admin.game_logs') }}" class="action-button" style="margin-top: 20px;">Zurück zu Logs</a>
+    </div>
+</body>
+</html>
