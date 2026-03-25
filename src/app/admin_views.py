@@ -112,7 +112,7 @@ def create_user():
     username = request.form['username']
     password = request.form['password']
 
-    if User.with_deleted().filter_by(username=username).first():
+    if User.query.filter_by(username=username).first():
         flash('Username already exists!')
         return redirect(url_for('admin.dashboard'))
 
@@ -134,6 +134,7 @@ def create_user():
 @admin_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
+    user.username = f'__deleted_{user.id}__{user.username}'
     user.soft_delete()
     conversation = Conversation.query.filter_by(user_id=user.id).first()
     if conversation:
@@ -160,12 +161,24 @@ def create_team():
 
     team_id = f"{type_id.lower()}{number}"
 
-    if Teams.with_deleted().filter_by(id=team_id).first():
+    if not name:
+        name = team_id
+
+    # Check if an active (non-deleted) team already exists
+    if Teams.query.filter_by(id=team_id).first():
         flash('Team already exists!')
         return redirect(url_for('admin.dashboard'))
 
-    if not name:
-        name = team_id
+    # Remove only the soft-deleted row so the replacement team is a fresh record.
+    existing_deleted = (
+        Teams.with_deleted()
+        .filter_by(id=team_id)
+        .filter(Teams.deleted_at.isnot(None))
+        .first()
+    )
+    if existing_deleted:
+        db.session.delete(existing_deleted)
+        db.session.flush()
 
     team = Teams(team_type=type_id, team_number=number)
     team.id = team_id
