@@ -1,0 +1,103 @@
+{% block content %}
+<head>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='gog/admin/gog_ranking.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='gog/images/GoG-Logo.ico') }}">
+    <style>
+        .cert-table { width: 100%; border-collapse: collapse; margin-top: 16px; margin-bottom: 40px; }
+        .cert-table th, .cert-table td { padding: 14px 20px; border-bottom: 1px solid #ddd; text-align: left; }
+        .cert-table th { background: #222; color: #fff; }
+        .cert-table tr:nth-child(even) { background: #f9f9f9; }
+        .download-btn {
+            display: inline-block;
+            padding: 8px 18px;
+            background: #222;
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .download-btn:hover { background: #555; }
+        .medal-1 { color: #c9a227; font-weight: bold; }
+        .medal-2 { color: #888; font-weight: bold; }
+        .medal-3 { color: #cd7f32; font-weight: bold; }
+        .no-data { color: #888; padding: 20px; text-align: center; }
+    </style>
+</head>
+
+<div class="entire-content-excluding-base">
+    <div class="page-header">Urkunden</div>
+    <button class="back-button" onclick="window.location.href='/gog/admin/dashboard'">Zurück</button>
+
+    <!-- A Teams -->
+    <h1 class="leaderboard-title">Top 3 – A Teams</h1>
+    {% if top3_a %}
+    <table class="cert-table">
+        <thead>
+            <tr>
+                <th>Platz</th>
+                <th>Team</th>
+                <th>ID</th>
+                <th>Rangpunkte</th>
+                <th>Urkunde</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team, total in top3_a %}
+            {% set place = loop.index %}
+            <tr>
+                <td class="medal-{{ place }}">{{ place }}.</td>
+                <td>{{ team.team_name }}</td>
+                <td>{{ team.id }}</td>
+                <td>{{ total }}</td>
+                <td>
+                    <a class="download-btn"
+                       href="{{ url_for('admin.download_certificate', group='a', place=place) }}">
+                        Herunterladen
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">Noch keine Punkte für A-Teams erfasst.</p>
+    {% endif %}
+
+    <div class="section-divider"></div>
+
+    <!-- B Teams -->
+    <h1 class="leaderboard-title">Top 3 – B Teams</h1>
+    {% if top3_b %}
+    <table class="cert-table">
+        <thead>
+            <tr>
+                <th>Platz</th>
+                <th>Team</th>
+                <th>ID</th>
+                <th>Rangpunkte</th>
+                <th>Urkunde</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for team, total in top3_b %}
+            {% set place = loop.index %}
+            <tr>
+                <td class="medal-{{ place }}">{{ place }}.</td>
+                <td>{{ team.team_name }}</td>
+                <td>{{ team.id }}</td>
+                <td>{{ total }}</td>
+                <td>
+                    <a class="download-btn"
+                       href="{{ url_for('admin.download_certificate', group='b', place=place) }}">
+                        Herunterladen
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">Noch keine Punkte für B-Teams erfasst.</p>
+    {% endif %}
+</div>
+{% endblock %}

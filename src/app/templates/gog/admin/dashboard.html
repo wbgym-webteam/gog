@@ -16,6 +16,7 @@
             <a href="{{ url_for('admin.create_game') }}" class="action-button">Neues Spiel erstellen</a>
             <a href="{{ url_for('admin.game_logs') }}" class="action-button">Spiel Protokoll</a>
             <a href="{{ url_for('admin.admin_gog_ranking') }}" class="action-button">Rangliste</a>
+            <a href="{{ url_for('admin.certificates') }}" class="action-button">Urkunden</a>
             <a href="{{ url_for('admin.messages_inbox') }}" class="action-button" style="position: relative;">
                 Nachrichten
                 <span id="unread-badge" style="position: absolute; top: -8px; right: -8px; background: #ff4444; color: white; padding: 2px 6px; border-radius: 10px; font-size: 11px; display: {{ 'inline' if unread_count > 0 else 'none' }};">{{ unread_count if unread_count > 0 else '' }}</span>

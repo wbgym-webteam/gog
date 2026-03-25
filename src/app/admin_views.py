@@ -1,9 +1,10 @@
 #gog\src\app\admin_views.py
-from flask import Blueprint, session, request, redirect, url_for, flash, render_template
+from flask import Blueprint, session, request, redirect, url_for, flash, render_template, send_file
 from flask_login import login_required, current_user, login_user, logout_user
 from functools import wraps
 from .models import User, Admin, Teams, TeamType, Game, DependencyType, ScoringPreference, GamePoints, Log, db, Conversation, Message
 from datetime import datetime
+import io
 import logging
 from sqlalchemy import func
 from . import db, socketio
@@ -545,6 +546,61 @@ def messages_new():
                            users_without_conv=users_without_conv,
                            users_with_conv=users_with_conv,
                            unread_count=unread_count)
+
+
+@admin.route('/certificates')
+@login_required
+@admin_required
+def certificates():
+    """Show top-3 from A teams and top-3 from B teams with certificate download buttons."""
+    top3_a = _get_top3_by_type(TeamType.A)
+    top3_b = _get_top3_by_type(TeamType.B)
+    return render_template('gog/admin/certificates.html', top3_a=top3_a, top3_b=top3_b)
+
+
+@admin.route('/certificates/download/<group>/<int:place>')
+@login_required
+@admin_required
+def download_certificate(group, place):
+    """Generate and return a certificate PNG for the given group (a/b) and place (1-3)."""
+    if group not in ('a', 'b') or place not in (1, 2, 3):
+        flash('Ungültige Anfrage.')
+        return redirect(url_for('admin.certificates'))
+
+    team_type = TeamType.A if group == 'a' else TeamType.B
+    top3 = _get_top3_by_type(team_type)
+
+    if place > len(top3):
+        flash('Nicht genug Teams in der Rangliste.')
+        return redirect(url_for('admin.certificates'))
+
+    team, _ = top3[place - 1]
+    from .certificate_generator import generate_certificate
+    png_bytes = generate_certificate(
+        team_name=team.team_name or team.id,
+        year=datetime.utcnow().year,
+        place=place,
+    )
+    filename = f'Urkunde_{group.upper()}-Teams_{place}_Platz_{(team.team_name or team.id).replace(" ", "_")}.png'
+    return send_file(
+        io.BytesIO(png_bytes),
+        mimetype='image/png',
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+def _get_top3_by_type(team_type):
+    """Return top-3 teams of a given TeamType, sorted by total final_points ascending (lower = better)."""
+    results = (
+        db.session.query(Teams, func.sum(GamePoints.final_points).label('total_points'))
+        .join(GamePoints, GamePoints.team_id == Teams.id)
+        .filter(Teams.team_type == team_type)
+        .group_by(Teams.id)
+        .order_by(func.sum(GamePoints.final_points).asc())
+        .all()
+    )
+    return results[:3]
 
 
 @admin.route('/messages/<int:conversation_id>/mark-read', methods=['POST'])
